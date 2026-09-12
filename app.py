@@ -6,7 +6,10 @@ st.set_page_config(page_title="AI 網頁點餐系統", page_icon="🍱")
 st.title("🍱 我的流暢網頁點餐系統")
 st.write("歡迎光臨！請在下方選擇您想點的餐點與客製化選項喔！")
 
-# 2. 定義菜單與價格（完全不需要複雜的圖片連結，用 Emoji 當圖標）
+# 🌟 新增功能：在最上方讓客人選擇內用還是外帶
+dining_type = st.radio("🥡 請選擇您的用餐方式：", ["內用 🍽️", "外帶 🛍️"], horizontal=True)
+
+# 2. 定義菜單與價格
 menu = {
     "滷肉飯 🍚": 45,
     "炸雞排 🍗": 85,
@@ -51,6 +54,10 @@ with col1:
 
 with col2:
     st.subheader("【 🛒 您的購物車 】")
+    
+    # 🌟 顯示目前的用餐方式
+    st.markdown(f"✨ 目前選擇：**{dining_type}**")
+    
     if not st.session_state.cart:
         st.write("購物車目前是空的喔！")
         total = 0
@@ -70,6 +77,9 @@ with col2:
         
         st.write("---")
         
+        # 🌟 新增功能：整單訂單備註欄
+        order_note = st.text_input("📝 訂單備註（例如：飯少、蔥多、薯條不加鹽）")
+        
         # 折扣碼輸入框
         coupon = st.text_input("🏷️ 輸入折扣碼 (提示: VIP90 )")
         if coupon == "VIP90":
@@ -85,7 +95,11 @@ with col2:
         
         # 結帳與清空按鈕
         if st.button("🏁 確認結帳", type="primary"):
-            st.success(f"🎉 點餐成功！請至櫃檯支付 ${final_total} 元，餐點製作中！")
+            st.success(f"🎉 點餐成功！")
+            st.info(f"📋 您的訂單（{dining_type}）已送出！")
+            if order_note:
+                st.warning(f"✍️ 備註要求：{order_note}")
+            st.write(f"請至櫃檯支付 ${final_total} 元，餐點製作中！")
             
         if st.button("🗑️ 清空購物車"):
             st.session_state.cart = []
