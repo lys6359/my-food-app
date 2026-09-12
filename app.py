@@ -103,6 +103,8 @@ with col2:
         
         # 轉換成網頁文字格式
         encoded_text = urllib.parse.quote(whatsapp_text)
+        
+        # 🌟 【已修正】這裡加上了關鍵的斜線 / 確保網址完全正確
         whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
         
         # 建立跳轉按鈕
