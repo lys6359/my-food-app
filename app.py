@@ -105,7 +105,7 @@ with col2:
         encoded_text = urllib.parse.quote(whatsapp_text)
         
         # 🌟 【這裡已經放上正確的斜線 / 】100% 沒問題！
-        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
         # 建立美麗的藍色跳轉按鈕
         st.link_button("📱 點擊發送訂單至 WhatsApp", whatsapp_url, type="primary", use_container_width=True)
