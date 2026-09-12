@@ -3,27 +3,15 @@ import streamlit as st
 # 1. 設定網頁標題與圖標
 st.set_page_config(page_title="AI 網頁點餐系統", page_icon="🍱")
 
-st.title("🍱 我的視覺進階版點餐系統")
-st.write("歡迎光臨！請參考下方精美圖片，選擇您想點的餐點與客製化選項喔！")
+st.title("🍱 我的流暢網頁點餐系統")
+st.write("歡迎光臨！請在下方選擇您想點的餐點與客製化選項喔！")
 
-# 2. 定義菜單、價格與高清食物圖片網址
+# 2. 定義菜單與價格（完全不需要複雜的圖片連結，用 Emoji 當圖標）
 menu = {
-    "滷肉飯 🍚": {
-        "price": 45,
-        "image": "https://unsplash.com"
-    },
-    "炸雞排 🍗": {
-        "price": 85,
-        "image": "https://unsplash.com"
-    },
-    "珍珠奶茶 🧋": {
-        "price": 60,
-        "image": "https://unsplash.com"
-    },
-    "黃金薯條 🍟": {
-        "price": 50,
-        "image": "https://unsplash.com"
-    }
+    "滷肉飯 🍚": 45,
+    "炸雞排 🍗": 85,
+    "珍珠奶茶 🧋": 60,
+    "黃金薯條 🍟": 50
 }
 
 # 初始化購物車（如果不存在的話）
@@ -36,32 +24,30 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("【 🍱 今日菜單 】")
     
-    # 遍歷每樣食物並顯示圖片與價格
-    for food, info in menu.items():
-        st.markdown(f"### {food} — `${info['price']}元`")
-        
-        # 🌟 核心修改：使用 st.image 顯示高清食物圖片
-        # width=300 可以控制圖片寬度，讓排版更整齊；caption 可以幫圖片加小字幕
-        st.image(info["image"], width=300, caption=f"熱騰騰的{food}")
-        
-        # 如果是飲料（珍珠奶茶），就顯示冰塊和甜度的下拉選單
-        if "珍珠奶茶" in food:
-            ice = st.selectbox("🧊 選擇冰塊", ["正常冰", "少冰", "微冰", "去冰"], key="ice_select")
-            sugar = st.selectbox("🍬 選擇甜度", ["正常甜", "少糖(7分)", "半糖(5分)", "微糖(3分)", "無糖"], key="sugar_select")
-            button_label = f"➕ 點購 {food} ({ice}/{sugar})"
-            note = f" ({ice}/{sugar})"
-        else:
-            # 普通餐點可以選擇辣度
-            spicy = st.selectbox("🌶️ 辣度選擇", ["不辣", "微辣", "中辣", "大辣"], key=f"spicy_{food}")
-            button_label = f"➕ 點購 {food} ({spicy})"
-            note = f" ({spicy})"
+    # 遍歷每樣食物並顯示價格
+    for food, price in menu.items():
+        # 用一個精美的小卡片方框包裝每樣食物
+        with st.container(border=True):
+            st.markdown(f"### {food}")
+            st.markdown(f"💰 價格：**${price} 元**")
             
-        # 點擊按鈕時將食物與客製化選項存入購物車
-        if st.button(button_label, key=f"btn_{food}"):
-            full_name = f"{food}{note}"
-            st.session_state.cart.append((full_name, info["price"]))
-            st.toast(f"已將 {full_name} 加入購物車！")
-        st.write("---") # 分隔線
+            # 如果是飲料（珍珠奶茶），就顯示冰塊和甜度的下拉選單
+            if "珍珠奶茶" in food:
+                ice = st.selectbox("🧊 選擇冰塊", ["正常冰", "少冰", "微冰", "去冰"], key="ice_select")
+                sugar = st.selectbox("🍬 選擇甜度", ["正常甜", "少糖(7分)", "半糖(5分)", "微糖(3分)", "無糖"], key="sugar_select")
+                button_label = f"➕ 點購 {food} ({ice}/{sugar})"
+                note = f" ({ice}/{sugar})"
+            else:
+                # 普通餐點可以選擇辣度
+                spicy = st.selectbox("🌶️ 辣度選擇", ["不辣", "微辣", "中辣", "大辣"], key=f"spicy_{food}")
+                button_label = f"➕ 點購 {food} ({spicy})"
+                note = f" ({spicy})"
+                
+            # 點擊按鈕時將食物與客製化選項存入購物車
+            if st.button(button_label, key=f"btn_{food}", type="secondary"):
+                full_name = f"{food}{note}"
+                st.session_state.cart.append((full_name, price))
+                st.toast(f"已將 {full_name} 加入購物車！")
 
 with col2:
     st.subheader("【 🛒 您的購物車 】")
