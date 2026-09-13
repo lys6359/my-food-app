@@ -153,7 +153,7 @@ with col2:
         
         # 轉換成網頁文字格式
         encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
         # 建立美麗的藍色跳轉按鈕
         st.link_button("📱 點擊發送訂單至 WhatsApp", whatsapp_url, type="primary", use_container_width=True)
