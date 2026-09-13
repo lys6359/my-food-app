@@ -120,41 +120,44 @@ with col2:
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
         st.write("---")
         
-        # 🌟 【防呆核心修改 1】：加上 index=None，這樣一開始就不會預設勾選任何選項
+        # 讓顧客手動勾選付款方式（一開始預設為空，鎖死按鈕）
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
             index=None
         )
         
-        # 根據不同的付款方式，進行智慧判斷
         payment_closing_text = ""
-        is_button_disabled = True # 🌟 預設按鈕是鎖死(禁用)的
+        is_button_disabled = True 
         
         if pay_method is None:
-            # 🌟 【防呆核心修改 2】：如果顧客完全沒選，跳出紅色警告提示
             st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
             is_button_disabled = True
         elif pay_method == "DuitNow 線上轉賬":
+            # 🌟 【核心修改】：當選取 DuitNow 時，除了文字告示牌，自動秀出雲端上的 QR Code 圖片
             st.markdown(f"""
-                <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 15px; color: #FFFFFF;">
+                <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
                     <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
-                    <p style="margin: 0px; font-size: 15px;">請手動轉賬總金額至老闆的 DuitNow 賬號：</p>
+                    <p style="margin: 0px; font-size: 15px;">請掃描下方 QR Code 或手動轉賬總金額至老闆賬號：</p>
                     <p style="margin: 5px 0px; font-size: 18px; font-weight: bold; color: #FBBF24;">📞 號碼：010-9456359</p>
-                    <p style="margin: 0px; font-size: 13px; color: #9CA3AF;">💡 提示：轉賬完成後，請點擊下方按鈕發送訂單與「付款收據截圖」喔！🙏</p>
                 </div>
             """, unsafe_allow_html=True)
-            payment_closing_text = f"老闆，我已經手動完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收接單，謝謝！🙏"
-            is_button_disabled = False # 🌟 解鎖按鈕
+            
+            # 顯示您上傳到 GitHub 的 DuitNow QR Code 圖片，寬度設為 220 剛剛好不佔空間
+            st.image("qr.png", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+            
+            st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
+            payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收接單，謝謝！🙏"
+            is_button_disabled = False 
         else:
             st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備餐點，我抵達時再付款，謝謝！🙏"
-            is_button_disabled = False # 🌟 解鎖按鈕
+            is_button_disabled = False 
         
         # 組合 WhatsApp 文字訊息
         whatsapp_text = f"🚨 【收到新訂單】 🚨\n\n"
         whatsapp_text += f"📌 用餐方式：{dining_type}\n"
-        whatsapp_text += f"💳 付款方式：{pay_method if pay_method else '未選擇'}\n"
+        whatsapp_text += f"💳 付款方式：{pay_method}\n"
         whatsapp_text += f"-------------------------\n"
         for food_info, price in st.session_state.cart:
             whatsapp_text += f"▪️ {food_info} - {CURRENCY} {price:.2f}\n"
@@ -167,7 +170,6 @@ with col2:
         encoded_text = urllib.parse.quote(whatsapp_text)
         whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
-        # 🌟 【防呆核心修改 3】：利用 disabled 參數控制按鈕的開啟與鎖死
         st.link_button(
             "📱 點擊發送訂單至 WhatsApp", 
             whatsapp_url, 
