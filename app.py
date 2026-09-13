@@ -7,20 +7,15 @@ st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layo
 # 利用 CSS 注入，將背景改成高級明亮黃與深灰色調
 st.markdown("""
     <style>
-    /* 調整整個網頁的底色與字體 */
     .stApp {
         background-color: #FBBF24; /* 鮮豔的高級明亮黃底色 */
         color: #1F2937 !important;
     }
-    
-    /* 讓頂端的主標題變得更醒目高檔 */
     h1 {
         color: #000000 !important;
         font-weight: 800 !important;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
-    
-    /* 今日菜單的小卡片改成高質感的深灰色底，營造黑黃強烈對比 */
     [data-testid="stContainer"] {
         background-color: #1F2937 !important; /* 深灰色卡片背景 */
         border-radius: 16px !important;
@@ -29,13 +24,9 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
         margin-bottom: 15px !important;
     }
-    
-    /* 讓深灰色卡片內的所有 Markdown 文字強制變成白色，保證清晰度 */
     [data-testid="stContainer"] .stMarkdown p, [data-testid="stContainer"] h3 {
         color: #FFFFFF !important;
     }
-    
-    /* 點餐按鈕美化：改成明亮黃，按下去有反差感 */
     [data-testid="stContainer"] button {
         background-color: #FBBF24 !important;
         color: #000000 !important;
@@ -47,11 +38,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 網頁頂端標題
 st.title("🍔 我的馬來西亞在地點餐系統")
-st.markdown("<p style='color: #4B5563; font-weight: bold;'>歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！</p>", unsafe_allow_html=True)
+st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-# 🌟 馬來西亞專屬設定與你的號碼
+# 🌟 馬來西亞專屬設定
 CURRENCY = "RM"
 MY_PHONE_NUMBER = "60109456359"
 
@@ -66,7 +56,6 @@ menu = {
     "黃金薯條 🍟": 7.00
 }
 
-# 初始化購物車
 if "cart" not in st.session_state:
     st.session_state.cart = []
 
@@ -75,13 +64,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("【 🍱 今日菜單 】")
-    
     for food, price in menu.items():
         with st.container():
             st.markdown(f"### {food}")
             st.markdown(f"💰 價格：**{CURRENCY} {price:.2f}**")
             
-            # 客製化選項
             if "珍珠奶茶" in food:
                 ice = st.selectbox("🧊 選擇冰塊", ["正常冰", "少冰", "微冰", "去冰"], key="ice_select")
                 sugar = st.selectbox("🍬 選擇甜度", ["正常甜", "少糖(7分)", "半糖(5分)", "微糖(3分)", "無糖"], key="sugar_select")
@@ -131,21 +118,34 @@ with col2:
             final_total = total
             
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
+        st.write("---")
         
-        # 🌟 新增核心功能：在結帳按鈕上方放置專屬的 DuitNow 轉賬說明卡片
-        # 這裡特別設計成黑底黃字，醒目且極具質感
-        st.markdown(f"""
-            <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 15px; color: #FFFFFF;">
-                <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
-                <p style="margin: 0px; font-size: 15px;">請手動轉賬總金額至老闆的 DuitNow 賬號：</p>
-                <p style="margin: 5px 0px; font-size: 18px; font-weight: bold; color: #FBBF24;">📞 號碼：010-9456359</p>
-                <p style="margin: 0px; font-size: 13px; color: #9CA3AF;">💡 溫馨提示：轉賬完成後，請點擊下方藍色按鈕將「訂單明細」及「轉賬截圖」發送給老闆確認接單喔！🙏</p>
-            </div>
-        """, unsafe_allow_html=True)
+        # 🌟 核心優化項目：讓顧客手動勾選付款方式
+        pay_method = st.radio("💳 請選擇您的付款方式：", ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"])
+        
+        # 根據不同的付款方式，顯示對應的提示字和調整 WhatsApp 訊息
+        payment_closing_text = ""
+        
+        if pay_method == "DuitNow 線上轉賬":
+            # 只有選擇轉賬時，網頁才跳出 DuitNow 收款卡片
+            st.markdown(f"""
+                <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 15px; color: #FFFFFF;">
+                    <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
+                    <p style="margin: 0px; font-size: 15px;">請手動轉賬總金額至老闆的 DuitNow 賬號：</p>
+                    <p style="margin: 5px 0px; font-size: 18px; font-weight: bold; color: #FBBF24;">📞 號碼：010-9456359</p>
+                    <p style="margin: 0px; font-size: 13px; color: #9CA3AF;">💡 提示：轉賬完成後，請點擊下方藍色按鈕發送訂單與「付款收據截圖」喔！🙏</p>
+                </div>
+            """, unsafe_allow_html=True)
+            payment_closing_text = f"老闆，我已經手動完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收接單，謝謝！🙏"
+        else:
+            # 選擇現金支付時，給予現金提示
+            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
+            payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備餐點，我抵達時再付款，謝謝！🙏"
         
         # 組合 WhatsApp 文字訊息
         whatsapp_text = f"🚨 【收到新訂單】 🚨\n\n"
         whatsapp_text += f"📌 用餐方式：{dining_type}\n"
+        whatsapp_text += f"💳 付款方式：{pay_method}\n" # 訊息內也加上付款方式，一目了然
         whatsapp_text += f"-------------------------\n"
         for food_info, price in st.session_state.cart:
             whatsapp_text += f"▪️ {food_info} - {CURRENCY} {price:.2f}\n"
@@ -153,13 +153,12 @@ with col2:
         if order_note:
             whatsapp_text += f"📝 備註：{order_note}\n"
         whatsapp_text += f"💰 總金額：{CURRENCY} {final_total:.2f}\n\n"
-        whatsapp_text += f"老闆，我已經手動轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收接單，謝謝！🙏"
+        whatsapp_text += payment_closing_text # 動態塞入剛才判定的結尾文字
         
-        # 轉換成網頁文字格式
+        # 轉換成網頁文字格式並發送
         encoded_text = urllib.parse.quote(whatsapp_text)
         whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
-        # 建立跳轉按鈕
         st.link_button("📱 點擊發送訂單至 WhatsApp", whatsapp_url, type="primary", use_container_width=True)
         
         if st.button("🗑️ 清空購物車"):
