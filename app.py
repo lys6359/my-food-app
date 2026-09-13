@@ -2,10 +2,59 @@ import streamlit as st
 import urllib.parse
 
 # 1. 網頁基本設定
-st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔")
+st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
 
+# 🌟 核心修改：利用 CSS 注入，將背景改成你給的範例中那種高級明亮黃與深灰色調
+st.markdown("""
+    <style>
+    /* 調整整個網頁的底色與字體 */
+    .stApp {
+        background-color: #FBBF24; /* 鮮豔的高級明亮黃底色 */
+        color: #1F2937 !important;
+    }
+    
+    /* 讓頂端的主標題變得更醒目高檔 */
+    h1 {
+        color: #000000 !important;
+        font-weight: 800 !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    /* 將今日菜單的小卡片改成高質感的深灰色底，營造範例圖的黑黃強烈對比 */
+    [data-testid="stContainer"] {
+        background-color: #1F2937 !important; /* 深灰色卡片背景 */
+        border-radius: 16px !important;
+        padding: 20px !important;
+        border: none !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        margin-bottom: 15px !important;
+    }
+    
+    /* 讓深灰色卡片內的所有 Markdown 文字強制變成白色，保證清晰度 */
+    [data-testid="stContainer"] .stMarkdown p, [data-testid="stContainer"] h3 {
+        color: #FFFFFF !important;
+    }
+    
+    /* 點餐按鈕美化：改成明亮黃，按下去有反差感 */
+    [data-testid="stContainer"] button {
+        background-color: #FBBF24 !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+        border-radius: 8px !important;
+        border: none !important;
+        width: 100% !important;
+    }
+    
+    /* 購物車區塊的文字顏色微調 */
+    .shopping-cart-text {
+        color: #1F2937 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 網頁頂端標題
 st.title("🍔 我的馬來西亞在地點餐系統")
-st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
+st.markdown("<p style='color: #4B5563; font-weight: bold;'>歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！</p>", unsafe_allow_html=True)
 
 # 🌟 馬來西亞專屬設定
 CURRENCY = "RM"
@@ -14,10 +63,10 @@ MY_PHONE_NUMBER = "60109456359"
 # 讓客人選擇用餐方式
 dining_type = st.radio("🥡 請選擇您的用餐方式：", ["內用 🍽️", "外帶 🛍️"], horizontal=True)
 
-# 2. 定義菜單與價格（馬來西亞令吉 RM）
+# 2. 定義菜單與價格
 menu = {
-    "滷肉飯 🍚": 12.00,
-    "炸雞排 🍗": 15.00,
+    "特級牛肉漢堡 🍔": 18.00,  # 換成符合你範例圖的漢堡料理！
+    "招牌炸雞排 🍗": 15.00,
     "珍珠奶茶 🧋": 9.50,
     "黃金薯條 🍟": 7.00
 }
@@ -33,7 +82,8 @@ with col1:
     st.subheader("【 🍱 今日菜單 】")
     
     for food, price in menu.items():
-        with st.container(border=True):
+        # 這個容器會自動被上方的 CSS 染成高質感的深灰色卡片
+        with st.container():
             st.markdown(f"### {food}")
             st.markdown(f"💰 價格：**{CURRENCY} {price:.2f}**")
             
@@ -48,7 +98,7 @@ with col1:
                 button_label = f"➕ 點購 {food} ({spicy})"
                 note = f" ({spicy})"
                 
-            if st.button(button_label, key=f"btn_{food}", type="secondary"):
+            if st.button(button_label, key=f"btn_{food}"):
                 st.session_state.cart.append((food + note, price))
                 st.toast(f"已加入購物車！")
 
@@ -103,9 +153,7 @@ with col2:
         
         # 轉換成網頁文字格式
         encoded_text = urllib.parse.quote(whatsapp_text)
-        
-        # 🌟 【這裡已經放上正確的斜線 / 】100% 沒問題！
-        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
         
         # 建立美麗的藍色跳轉按鈕
         st.link_button("📱 點擊發送訂單至 WhatsApp", whatsapp_url, type="primary", use_container_width=True)
