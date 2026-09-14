@@ -142,10 +142,9 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 🌟 【無敵大修復】：使用 100% 正確的 GitHub 原始檔案外部網址
-            # 雲端伺服器會直接從網路上下載這張圖片來秀，絕對不會卡死或報錯！
-            CORRECT_RAW_URL = "https://githubusercontent.com"
-            st.image(CORRECT_RAW_URL, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+            # 🌟 【終極修復】：這裡直接讀取你在 GitHub 上的 "qr.jpg" 檔案！
+            # 只要確保你的圖片檔案上傳到 GitHub 置物櫃首頁，並且名字精確叫 qr.jpg 就一定能抓到！
+            st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收接單，謝謝！🙏"
