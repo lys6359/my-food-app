@@ -38,7 +38,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🌟 老闆專用控制台 (功能 C)：True = 正常營業 | False = 店鋪打烊
+# 老闆專用控制台 (功能 C)：True = 正常營業 | False = 店鋪打烊
 IS_OPEN = True 
 
 if not IS_OPEN:
@@ -51,18 +51,23 @@ if not IS_OPEN:
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-# 網頁上的彩色圖案完美保留
-dining_type = st.radio("🥡 請選擇您的用餐方式：", ["內用 🍽️", "外帶 🛍️"], horizontal=True)
+# 🌟 【核心修改 1】：用餐方式新增「食物配送 🚗」，並且預設為 None (強制顧客先選擇，否則不能下一步)
+dining_type = st.radio(
+    "🥡 請選擇您的用餐方式：", 
+    ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
+    horizontal=True,
+    index=None
+)
 
 # 定義菜單與價格
 menu = {
     "特級牛肉漢堡 🍔": 18.00,
-    "招招牌炸雞排 🍗": 15.00,
+    "招牌炸雞排 🍗": 15.00,
     "珍珠奶茶 🧋": 9.50,
     "黃金薯條 🍟": 7.00
 }
 
-# 🌟 馬來西亞專屬貨幣符號
+# 馬來西亞專屬貨幣符號
 CURRENCY = "RM"
 MY_PHONE_NUMBER = "60109456359"
 
@@ -77,6 +82,14 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("【 🍱 今日菜單 】")
+    
+    # 🌟 【核心修改 2】：如果顧客還沒選擇用餐方式，今日菜單直接跳出紅色溫馨提示，並鎖死點餐功能
+    if dining_type is None:
+        st.error("⚠️ 請在網頁最上方先選擇您的「用餐方式」，才可以開始點餐喔！")
+        is_menu_disabled = True
+    else:
+        is_menu_disabled = False
+
     for food, price in menu.items():
         with st.container():
             st.markdown(f"### {food}")
@@ -90,7 +103,8 @@ with col1:
                 spicy = st.selectbox("🌶️ 辣度選擇", ["不辣", "微辣", "中辣", "大辣"], key=f"spicy_{food}")
                 full_food_name = f"{food} ({spicy})"
                 
-            if st.button(f"➕ 點購 {food}", key=f"btn_{food}"):
+            # 利用 disabled 控制菜單按鈕，沒選用餐方式前點不下去
+            if st.button(f"➕ 點購 {food}", key=f"btn_{food}", disabled=is_menu_disabled):
                 if full_food_name in st.session_state.new_cart:
                     st.session_state.new_cart[full_food_name] += 1
                 else:
@@ -100,7 +114,19 @@ with col1:
 
 with col2:
     st.subheader("【 🛒 您的購物車 】")
-    st.markdown(f"✨ 目前選擇：**{dining_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") 
+    
+    # 智慧顯示目前選擇
+    display_type = dining_type if dining_type else "⚠️ 尚未選擇"
+    st.markdown(f"✨ 目前選擇：**{display_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") 
+    
+    # 🌟 【核心修改 3】：根據不同的用餐方式，動態彈出地址或桌號輸入框
+    delivery_address = ""
+    table_number = ""
+    
+    if dining_type == "外送 / 食物配送 🚗":
+        delivery_address = st.text_input("🏠 請輸入您的完整外送地址 (Delivery Address)：")
+    elif dining_type == "內用 🍽️":
+        table_number = st.text_input("🔢 請輸入您的桌號 (Table Number)：")
     
     if not st.session_state.new_cart:
         st.write("購物車目前是空的喔！")
@@ -110,17 +136,14 @@ with col2:
         st.write("---")
         
         for food_info, qty in list(st.session_state.new_cart.items()):
-            # 智慧計價邏輯
             item_price = 0.0
             for menu_key in menu:
                 if menu_key in food_info:
                     item_price = menu[menu_key]
                     break
-            
             item_total = item_price * qty
             total += item_total
             
-            # 🌟 【已修正】這裡加上了正確的數字 3，分成完美的 3 欄！
             cart_col1, cart_col2, cart_col3 = st.columns(3)
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
@@ -152,6 +175,7 @@ with col2:
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
         st.write("---")
         
+        # 付款方式選擇
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
@@ -161,7 +185,14 @@ with col2:
         payment_closing_text = ""
         is_button_disabled = True 
         
-        if pay_method is None:
+        # 🌟 【核心修改 4】：新增外送和地址的完整防呆邏輯
+        if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
+            st.error("⚠️ 您選擇了外送，請在上方購物車內填寫「完整外送地址」，才可以發送訂單喔！")
+            is_button_disabled = True
+        elif dining_type == "內用 🍽️" and not table_number:
+            st.error("⚠️ 您選擇了內用，請在上方購物車內填寫「桌號」，才可以發送訂單喔！")
+            is_button_disabled = True
+        elif pay_method is None:
             st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
             is_button_disabled = True
         elif pay_method == "DuitNow 線上轉賬":
@@ -189,6 +220,11 @@ with col2:
         
         # 轉換成乾淨、全文字、絕不碎單的國際商用格式
         safe_dining = "Dine-in" if "內用" in dining_type else "Takeaway"
+        if "外送" in dining_type:
+            safe_dining = f"Delivery (Address: {delivery_address})"
+        elif "內用" in dining_type:
+            safe_dining = f"Dine-in (Table: {table_number})"
+            
         safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         
         whatsapp_text = f"*** NEW ORDER ***\n\n"
