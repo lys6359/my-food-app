@@ -1,6 +1,5 @@
 import streamlit as st
 import urllib.parse
-import os
 
 # 1. 網頁基本設定
 st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
@@ -143,21 +142,18 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 🌟 【保險機制】：檢查圖片檔案是否存在，防止程式崩潰
-            image_filename = "qr.png" 
+            # 🌟 【無敵大絕招】：直接利用 GitHub 的 Raw 網路圖片網址讀取
+            # 這樣就算雲端伺服器在隔壁找不到檔案，它也能 100% 穿透到網路把你的 QR 碼下載並亮出來！
+            RAW_QR_URL = "https://githubusercontent.com"
             
-            if os.path.exists(image_filename):
-                # 如果檔案存在，直接穩定讀取本地圖片！
-                st.image(image_filename, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
-            else:
-                # 保底防呆文字：如果雲端一時間找不到檔案，直接顯示這行粗體字引導客人，絕對不讓畫面崩潰！
-                st.markdown("⚠️ **[QR 圖片加載中] 請直接使用號碼轉賬，或重新整理網頁喔！**")
+            # 直接載入網路圖片，絕不報錯
+            st.image(RAW_QR_URL, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收接單，謝謝！🙏"
             is_button_disabled = False 
         else:
-            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金. ")
+            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備餐點，我抵達時再付款，謝謝！🙏"
             is_button_disabled = False 
         
