@@ -120,7 +120,7 @@ with col2:
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
         st.write("---")
         
-        # 讓顧客手動勾選付款方式（一開始預設為空，鎖死按鈕）
+        # 讓顧客手動勾選付款方式
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
@@ -134,7 +134,6 @@ with col2:
             st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
             is_button_disabled = True
         elif pay_method == "DuitNow 線上轉賬":
-            # 🌟 【核心修改】：當選取 DuitNow 時，除了文字告示牌，自動秀出雲端上的 QR Code 圖片
             st.markdown(f"""
                 <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
                     <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
@@ -143,8 +142,12 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 顯示您上傳到 GitHub 的 DuitNow QR Code 圖片，寬度設為 220 剛剛好不佔空間
-            st.image("qr.png", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+            # 🌟 【終極修復】：將原本的 "qr.png" 換成你剛剛複製的 GitHub 圖片網址
+            # 請把你剛才複製的圖片網址，替換掉下面雙引號裡的這串網址
+            YOUR_QR_IMAGE_URL = "https://githubusercontent.com"
+            
+            # 透過網址讀取圖片，寬度設為 220 剛剛好，並且絕對不會因為本地找不到檔案而報錯！
+            st.image(YOUR_QR_IMAGE_URL, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收接單，謝謝！🙏"
