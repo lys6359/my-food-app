@@ -1,6 +1,7 @@
 import streamlit as st
 import urllib.parse
 import random
+import os
 
 # 1. 網頁基本設定
 st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
@@ -58,7 +59,7 @@ if not IS_OPEN:
     with st.container():
         st.markdown("<h1 style='text-align: center; color: #FBBF24 !important;'>🌙 店鋪休息中 / Closed</h1>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; font-size: 18px; color: #FFFFFF !important;'>謝謝您的光臨！我們目前的營業時間已結束，明天請早喔！🙏</p>", unsafe_allow_html=True)
-    st.stop() # 強制停止網頁後續的點餐代碼執行
+    st.stop() 
 
 # ==========================================
 # 正常營業狀態下的點餐介面
@@ -77,11 +78,11 @@ menu = {
     "黃金薯條 🍟": 7.00
 }
 
-# 初始化高級購物車（功能 B：改用字典格式儲存 "商品名": 數量）
+# 初始化高級購物車（功能 B）
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
-# 初始化自動單號（功能 A：每位顧客進網頁自動生成唯一單號）
+# 初始化自動單號（功能 A）
 if "order_id" not in st.session_state:
     st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
 
@@ -105,7 +106,6 @@ with col1:
                 full_food_name = f"{food} ({spicy})"
                 
             if st.button(f"➕ 點購 {food}", key=f"btn_{food}"):
-                # 功能 B：如果食物已在購物車就數量+1，沒有就建立1
                 if full_food_name in st.session_state.new_cart:
                     st.session_state.new_cart[full_food_name] += 1
                 else:
@@ -115,7 +115,7 @@ with col1:
 
 with col2:
     st.subheader("【 🛒 您的購物車 】")
-    st.markdown(f"✨ 目前選擇：**{dining_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") # 功能 A 顯示
+    st.markdown(f"✨ 目前選擇：**{dining_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") 
     
     if not st.session_state.new_cart:
         st.write("購物車目前是空的喔！")
@@ -124,18 +124,16 @@ with col2:
         total = 0
         st.write("---")
         
-        # 功能 B：遍歷購物車，顯示合併後的數量與精細加減按鈕
+        # 功能 B：計算總金額
         for food_info, qty in list(st.session_state.new_cart.items()):
-            # 找出這款食物的基礎價格
             base_name = food_info.split(" (")[0]
             item_price = menu.get(base_name, 0.0)
             item_total = item_price * qty
             total += item_total
             
-            # 建立三欄小排版：左邊品名數量，中間減，右邊加
-            cart_col1, cart_col2, cart_col3 = st.columns([6, 1, 1])
+            cart_col1, cart_col2, cart_col3 = st.columns([2, 1, 1])
             with cart_col1:
-                st.write(f"▪️ **{food_info}** x {qty} = {CURRENCY} {item_total:.2f}")
+                st.write(f"▪️ **{food_info}** x {qty}")
             with cart_col2:
                 if st.button("➖", key=f"minus_{food_info}"):
                     st.session_state.new_cart[food_info] -= 1
@@ -187,9 +185,12 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 使用正確的 Raw 網址加載您的 DuitNow QR
-            RAW_QR_URL = "https://githubusercontent.com"
-            st.image(RAW_QR_URL, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+            # 🌟 【終極修復】：換回 100% 成功的 qr.jpg 本地直接讀取法
+            image_filename = "qr.jpg"
+            if os.path.exists(image_filename):
+                st.image(image_filename, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+            else:
+                st.error("⚠️ 圖片檔案正在同步中，請刷新網頁或手動使用號碼轉賬喔！")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！🙏"
@@ -199,13 +200,12 @@ with col2:
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！🙏"
             is_button_disabled = False 
         
-        # 🌟 組合 WhatsApp 文字訊息 (帶有自動單號功能 A)
+        # 組合 WhatsApp 文字訊息
         whatsapp_text = f"🚨 【收到新訂單】 🚨\n\n"
-        whatsapp_text += f"🔢 訂單單號：{st.session_state.order_id}\n" # 功能 A 嵌入
+        whatsapp_text += f"🔢 訂單單號：{st.session_state.order_id}\n"
         whatsapp_text += f"📌 用餐方式：{dining_type}\n"
         whatsapp_text += f"💳 付款方式：{pay_method}\n"
         whatsapp_text += f"-------------------------\n"
-        # 功能 B：漂亮的格式化數量與小計明細
         for food_info, qty in st.session_state.new_cart.items():
             base_name = food_info.split(" (")[0]
             item_price = menu.get(base_name, 0.0)
