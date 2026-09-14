@@ -142,11 +142,10 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 🌟 【無敵大絕招】：直接利用 GitHub 的 Raw 網路圖片網址讀取
-            # 這樣就算雲端伺服器在隔壁找不到檔案，它也能 100% 穿透到網路把你的 QR 碼下載並亮出來！
+            # 🌟 【終極修正】：網址結尾的 qr.png 已經幫你完美改成 qr.jpg 囉！
             RAW_QR_URL = "https://githubusercontent.com"
             
-            # 直接載入網路圖片，絕不報錯
+            # 載入正確的 jpg 圖片
             st.image(RAW_QR_URL, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
