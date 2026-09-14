@@ -38,7 +38,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 老闆專用控制台 (功能 C)：True = 正常營業 | False = 店鋪打烊
+# 老闆專用控制台：True = 正常營業 | False = 店鋪打烊
 IS_OPEN = True 
 
 if not IS_OPEN:
@@ -51,7 +51,7 @@ if not IS_OPEN:
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-# 🌟 【核心修改 1】：用餐方式新增「食物配送 🚗」，並且預設為 None (強制顧客先選擇，否則不能下一步)
+# 用餐方式新增「食物配送 🚗」，並且預設為 None (強制顧客先選擇)
 dining_type = st.radio(
     "🥡 請選擇您的用餐方式：", 
     ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
@@ -83,7 +83,6 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("【 🍱 今日菜單 】")
     
-    # 🌟 【核心修改 2】：如果顧客還沒選擇用餐方式，今日菜單直接跳出紅色溫馨提示，並鎖死點餐功能
     if dining_type is None:
         st.error("⚠️ 請在網頁最上方先選擇您的「用餐方式」，才可以開始點餐喔！")
         is_menu_disabled = True
@@ -103,7 +102,6 @@ with col1:
                 spicy = st.selectbox("🌶️ 辣度選擇", ["不辣", "微辣", "中辣", "大辣"], key=f"spicy_{food}")
                 full_food_name = f"{food} ({spicy})"
                 
-            # 利用 disabled 控制菜單按鈕，沒選用餐方式前點不下去
             if st.button(f"➕ 點購 {food}", key=f"btn_{food}", disabled=is_menu_disabled):
                 if full_food_name in st.session_state.new_cart:
                     st.session_state.new_cart[full_food_name] += 1
@@ -115,11 +113,10 @@ with col1:
 with col2:
     st.subheader("【 🛒 您的購物車 】")
     
-    # 智慧顯示目前選擇
     display_type = dining_type if dining_type else "⚠️ 尚未選擇"
     st.markdown(f"✨ 目前選擇：**{display_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") 
     
-    # 🌟 【核心修改 3】：根據不同的用餐方式，動態彈出地址或桌號輸入框
+    # 根據不同的用餐方式，動態彈出地址或桌號輸入框
     delivery_address = ""
     table_number = ""
     
@@ -185,7 +182,7 @@ with col2:
         payment_closing_text = ""
         is_button_disabled = True 
         
-        # 🌟 【核心修改 4】：新增外送和地址的完整防呆邏輯
+        # 外送和地址的完整防呆邏輯
         if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
             st.error("⚠️ 您選擇了外送，請在上方購物車內填寫「完整外送地址」，才可以發送訂單喔！")
             is_button_disabled = True
@@ -204,11 +201,8 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            image_filename = "qr.jpg"
-            if os.path.exists(image_filename):
-                st.image(image_filename, width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
-            else:
-                st.error("⚠️ 圖片檔案同步中，請刷新網頁喔！")
+            # 🌟 【圖片永久強制讀取法】：直接強制讀取檔案，移除敏感的判斷式，100% 亮出圖片！
+            st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
@@ -218,7 +212,7 @@ with col2:
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
             is_button_disabled = False 
         
-        # 轉換成乾淨、全文字、絕不碎單的國際商用格式
+        # 轉換成乾淨、全文字、絕不碎單的格式
         safe_dining = "Dine-in" if "內用" in dining_type else "Takeaway"
         if "外送" in dining_type:
             safe_dining = f"Delivery (Address: {delivery_address})"
