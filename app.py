@@ -201,7 +201,6 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 🌟 【圖片永久強制讀取法】：直接強制讀取檔案，移除敏感的判斷式，100% 亮出圖片！
             st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
@@ -219,7 +218,11 @@ with col2:
         elif "內用" in dining_type:
             safe_dining = f"Dine-in (Table: {table_number})"
             
-        safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
+        # 🌟 【終極安全修復】：加入條件判斷，確保 pay_method 為 None 時不會卡死報錯
+        if pay_method is not None:
+            safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
+        else:
+            safe_method = "Not Selected"
         
         whatsapp_text = f"*** NEW ORDER ***\n\n"
         whatsapp_text += f"Order ID: {st.session_state.order_id}\n"
