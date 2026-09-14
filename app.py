@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st
 import urllib.parse
 import random
 import os
@@ -38,8 +38,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 判定是否打烊
+# 🌟 老闆專用控制台 (功能 C)：True = 正常營業 | False = 店鋪打烊
 IS_OPEN = True 
+
 if not IS_OPEN:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     with st.container():
@@ -50,6 +51,7 @@ if not IS_OPEN:
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
+# 網頁上的彩色圖案完美保留
 dining_type = st.radio("🥡 請選擇您的用餐方式：", ["內用 🍽️", "外帶 🛍️"], horizontal=True)
 
 # 定義菜單與價格
@@ -59,6 +61,10 @@ menu = {
     "珍珠奶茶 🧋": 9.50,
     "黃金薯條 🍟": 7.00
 }
+
+# 🌟 修正馬來西亞專屬貨幣符號
+CURRENCY = "RM"
+MY_PHONE_NUMBER = "60109456359"
 
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
@@ -104,6 +110,7 @@ with col2:
         st.write("---")
         
         for food_info, qty in list(st.session_state.new_cart.items()):
+            # 智慧計價邏輯
             item_price = 0.0
             for menu_key in menu:
                 if menu_key in food_info:
@@ -179,7 +186,7 @@ with col2:
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
             is_button_disabled = False 
         
-        # 🌟 【終極安全無問號轉換】：在發送至 WhatsApp 的純文字明細中，將所有彩色 Emoji 換成 100% 穩定的文字字元
+        # 轉換成乾淨、全文字、絕不碎單的國際商用格式
         safe_dining = "Dine-in" if "內用" in dining_type else "Takeaway"
         safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         
@@ -190,7 +197,6 @@ with col2:
         whatsapp_text += f"-------------------------\n"
         
         for food_info, qty in st.session_state.new_cart.items():
-            # 智慧去除品名中的圖標，改用乾淨的文字包裝
             clean_food = food_info.replace("🍔", "").replace("🍗", "").replace("🧋", "").replace("🍟", "").strip()
             item_price = 0.0
             for menu_key in menu:
