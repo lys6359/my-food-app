@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import urllib.parse
 import random
 import os
@@ -6,18 +6,7 @@ import os
 # 1. 網頁基本設定
 st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
 
-# ==========================================
-# 🌟 老闆專用控制台 (功能 C)
-# True  = 正常營業 | False = 店鋪打烊
-IS_OPEN = True 
-
-# 🌟 馬來西亞商家核心設定
-CURRENCY = "RM"
-MY_PHONE_NUMBER = "60109456359"
-
-# ==========================================
-# 網頁高級外觀 CSS 注入 (黑黃潮牌美式風格)
-# ==========================================
+# 利用 CSS 注入，將背景改成高級明亮黃與深灰色調
 st.markdown("""
     <style>
     .stApp {
@@ -50,6 +39,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 判定是否打烊
+IS_OPEN = True 
 if not IS_OPEN:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     with st.container():
@@ -57,13 +47,12 @@ if not IS_OPEN:
         st.markdown("<p style='text-align: center; font-size: 18px; color: #FFFFFF !important;'>謝謝您的光臨！我們目前的營業時間已結束，明天請早喔！🙏</p>", unsafe_allow_html=True)
     st.stop() 
 
-# 正常營業點餐介面
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
 dining_type = st.radio("🥡 請選擇您的用餐方式：", ["內用 🍽️", "外帶 🛍️"], horizontal=True)
 
-# 🌟 定義精確的菜單字典，確保價格配對萬無一失
+# 定義菜單與價格
 menu = {
     "特級牛肉漢堡 🍔": 18.00,
     "招牌炸雞排 🍗": 15.00,
@@ -71,11 +60,9 @@ menu = {
     "黃金薯條 🍟": 7.00
 }
 
-# 初始化高級購物車
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
-# 初始化自動單號
 if "order_id" not in st.session_state:
     st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
 
@@ -116,9 +103,7 @@ with col2:
         total = 0
         st.write("---")
         
-        # 遍歷購物車，計算價格並渲染加減按鈕
         for food_info, qty in list(st.session_state.new_cart.items()):
-            # 🌟 修正後的智慧計價邏輯：完美保留商品原名與 Emoji
             item_price = 0.0
             for menu_key in menu:
                 if menu_key in food_info:
@@ -128,7 +113,7 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            cart_col1, cart_col2, cart_col3 = st.columns([2, 1, 1])
+            cart_col1, cart_col2, cart_col3 = st.columns()
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
             with cart_col2:
@@ -144,7 +129,6 @@ with col2:
                     
         st.write("---")
         
-        # 訂單備註與折扣碼
         order_note = st.text_input("📝 訂單備註（例如：飯少、薯條不加鹽）")
         coupon = st.text_input("🏷️ 輸入折扣碼 (提示: VIP90 )")
         
@@ -160,7 +144,6 @@ with col2:
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
         st.write("---")
         
-        # 付款方式選擇
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
@@ -189,33 +172,39 @@ with col2:
                 st.error("⚠️ 圖片檔案同步中，請刷新網頁喔！")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
-            payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！🙏"
+            payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
             is_button_disabled = False 
         else:
             st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
-            payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！🙏"
+            payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
             is_button_disabled = False 
         
-        # 🌟 組合包含完美完整 Emoji 的 WhatsApp 訊息，絕不碎單！
-        whatsapp_text = f"🚨 【收到新訂單】 🚨\n\n"
-        whatsapp_text += f"🔢 訂單單號：{st.session_state.order_id}\n"
-        whatsapp_text += f"📌 用餐方式：{dining_type}\n"
-        whatsapp_text += f"💳 付款方式：{pay_method}\n"
+        # 🌟 【終極安全無問號轉換】：在發送至 WhatsApp 的純文字明細中，將所有彩色 Emoji 換成 100% 穩定的文字字元
+        safe_dining = "Dine-in" if "內用" in dining_type else "Takeaway"
+        safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
+        
+        whatsapp_text = f"*** NEW ORDER ***\n\n"
+        whatsapp_text += f"Order ID: {st.session_state.order_id}\n"
+        whatsapp_text += f"Type: {safe_dining}\n"
+        whatsapp_text += f"Payment: {safe_method}\n"
         whatsapp_text += f"-------------------------\n"
+        
         for food_info, qty in st.session_state.new_cart.items():
+            # 智慧去除品名中的圖標，改用乾淨的文字包裝
+            clean_food = food_info.replace("🍔", "").replace("🍗", "").replace("🧋", "").replace("🍟", "").strip()
             item_price = 0.0
             for menu_key in menu:
                 if menu_key in food_info:
                     item_price = menu[menu_key]
                     break
-            whatsapp_text += f"▪️ {food_info} x {qty} - {CURRENCY} {(item_price*qty):.2f}\n"
+            whatsapp_text += f"- {clean_food} x {qty} - {CURRENCY} {(item_price*qty):.2f}\n"
+            
         whatsapp_text += f"-------------------------\n"
         if order_note:
-            whatsapp_text += f"📝 備註：{order_note}\n"
-        whatsapp_text += f"💰 總金額：{CURRENCY} {final_total:.2f}\n\n"
+            whatsapp_text += f"Note: {order_note}\n"
+        whatsapp_text += f"Total Amount: {CURRENCY} {final_total:.2f}\n\n"
         whatsapp_text += payment_closing_text
         
-        # 轉換成網頁文字格式
         encoded_text = urllib.parse.quote(whatsapp_text)
         whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
