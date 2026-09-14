@@ -39,7 +39,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🌟 老闆專用控制台 (功能 C)：True = 正常營業 | False = 店鋪打烊
-IS_OPEN = False 
+IS_OPEN = True 
 
 if not IS_OPEN:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
