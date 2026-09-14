@@ -57,12 +57,12 @@ dining_type = st.radio("🥡 請選擇您的用餐方式：", ["內用 🍽️",
 # 定義菜單與價格
 menu = {
     "特級牛肉漢堡 🍔": 18.00,
-    "招牌炸雞排 🍗": 15.00,
+    "招招牌炸雞排 🍗": 15.00,
     "珍珠奶茶 🧋": 9.50,
     "黃金薯條 🍟": 7.00
 }
 
-# 🌟 修正馬來西亞專屬貨幣符號
+# 🌟 馬來西亞專屬貨幣符號
 CURRENCY = "RM"
 MY_PHONE_NUMBER = "60109456359"
 
@@ -120,7 +120,8 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            cart_col1, cart_col2, cart_col3 = st.columns()
+            # 🌟 【已修正】這裡加上了正確的數字 3，分成完美的 3 欄！
+            cart_col1, cart_col2, cart_col3 = st.columns(3)
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
             with cart_col2:
