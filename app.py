@@ -151,7 +151,6 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            # 🌟 核心修正：將漏掉的數字 3 補上，完美修復崩潰錯誤
             cart_col1, cart_col2, cart_col3 = st.columns(3)
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
@@ -200,7 +199,7 @@ with col2:
                 st.image("qr.jpg", width=220, caption="請截圖或銀行 App 掃描轉賬")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
         else:
-            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金. ")
+            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
         
         safe_dining = "Takeaway (外帶)"
@@ -264,5 +263,6 @@ if admin_password == "1234":  # 老闆密碼
     else:
         st.write(f"📈 今日系統已自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
         
+        # 整理成表格
         export_data = []
         for order in st.session_state.backend_orders_db:
