@@ -151,7 +151,8 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            cart_col1, cart_col2, cart_col3 = st.columns()
+            # 🌟 核心修正：將漏掉的數字 3 補上，完美修復崩潰錯誤
+            cart_col1, cart_col2, cart_col3 = st.columns(3)
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
             with cart_col2:
@@ -199,7 +200,7 @@ with col2:
                 st.image("qr.jpg", width=220, caption="請截圖或銀行 App 掃描轉賬")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
         else:
-            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
+            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金. ")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
         
         safe_dining = "Takeaway (外帶)"
@@ -227,8 +228,7 @@ with col2:
         
         st.write("---")
         
-        # 🌟 核心修復：只有當點擊「發送」按鈕的瞬間，才會把資料寫入後台數據庫！
-        # 這樣平常在點選菜單與更改付款方式時，前台就絕對不會被卡死，按鈕 100% 完美畫完呈現！
+        # 🚀 顧客發送按鈕
         if st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True):
             if not any(o['order_id'] == st.session_state.order_id for o in st.session_state.backend_orders_db):
                 st.session_state.backend_orders_db.append({
@@ -265,3 +265,4 @@ if admin_password == "1234":  # 老闆密碼
         st.write(f"📈 今日系統已自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
         
         export_data = []
+        for order in st.session_state.backend_orders_db:
