@@ -56,11 +56,11 @@ if "new_cart" not in st.session_state:
 if "order_id" not in st.session_state:
     st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
 
-# 🌟 初始化老闆後台的訂單歷史資料庫
+# 初始化老闆後台的訂單歷史資料庫
 if "order_history" not in st.session_state:
     st.session_state.order_history = []
 
-# 🌟 側邊欄密碼驗證切換後台
+# 側邊欄密碼驗證切換後台
 st.sidebar.title("🛠️ 管理員選單")
 admin_password = st.sidebar.text_input("🔑 輸入老闆登入密碼", type="password")
 is_admin_mode = (admin_password == "boss6359")
@@ -109,7 +109,7 @@ if is_admin_mode:
                         st.toast(f"單號 {order['id']} 狀態已更新為：{new_status}")
                         st.rerun()
 else:
-    # ==================== 【🛒 顧客點餐前台（完全回歸你原本的程式碼結構）】 ====================
+    # ==================== 【🛒 顧客點餐前台（保留完整邏輯，加強按鈕常駐）】 ====================
     st.title("🍔 我的馬來西亞在地點餐系統")
     st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
@@ -130,7 +130,6 @@ else:
     CURRENCY = "RM"
     MY_PHONE_NUMBER = "60109456359"
 
-    # 3. 建立兩欄網頁排版
     col1, col2 = st.columns(2)
 
     with col1:
@@ -177,16 +176,14 @@ else:
         elif dining_type == "內用 🍽️":
             table_number = st.text_input("🔢 請輸入您的桌號 (Table Number)：")
         
+        total = 0
+        items_summary_text = ""
+        
+        # 渲染購物車內物品
         if not st.session_state.new_cart:
             st.write("購物車目前是空的喔！")
-            total = 0
         else:
-            total = 0
             st.write("---")
-            
-            # 用於記錄要發送的純文字清單明細
-            items_summary_text = ""
-            
             for food_info, qty in list(st.session_state.new_cart.items()):
                 item_price = 0.0
                 for menu_key in menu:
@@ -212,47 +209,53 @@ else:
                         st.session_state.new_cart[food_info] += 1
                         st.rerun()
                         
-            st.write("---")
+        st.write("---")
+        order_note = st.text_input("📝 訂單備註（例如：飯少、薯條不加鹽）")
+        coupon = st.text_input("🏷️ 輸入折扣碼 (提示: VIP90 )")
+        
+        if coupon == "VIP90":
+            discount = total * 0.1
+            final_total = total - discount
+            st.info(f"🎉 成功套用 9 折折扣碼！已折抵 {CURRENCY} {discount:.2f}")
+        else:
+            if coupon != "":
+                st.error("❌ 折扣碼無效！")
+            final_total = total
             
-            order_note = st.text_input("📝 訂單備註（例如：飯少、薯條不加鹽）")
-            coupon = st.text_input("🏷️ 輸入折扣碼 (提示: VIP90 )")
+        st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
+        st.write("---")
+        
+        pay_method = st.radio(
+            "💳 請選擇您的付款方式：", 
+            ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
+            index=None
+        )
+        
+        payment_closing_text = ""
+        is_button_disabled = True 
+        
+        if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
+            st.error("⚠️ 您選擇了外送，請填寫「完整外送地址」，才可以發送訂單喔！")
+            is_button_disabled = True
+        elif dining_type == "內用 🍽️" and not table_number:
+            st.error("⚠️ 您選擇了內用，請填寫「桌號」，才可以發送訂單喔！")
+            is_button_disabled = True
+        elif pay_method is None:
+            st.error("⚠️ 請選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
+            is_button_disabled = True
+        elif pay_method == "DuitNow 線上轉賬":
+            st.warning("💳 DuitNow 轉賬收款說明\n\n請手動轉賬總金額至老闆賬號：\n📞 號碼：010-9456359")
             
-            if coupon == "VIP90":
-                discount = total * 0.1
-                final_total = total - discount
-                st.info(f"🎉 成功套用 9 折折扣碼！已折抵 {CURRENCY} {discount:.2f}")
-            else:
-                if coupon != "":
-                    st.error("❌ 折扣碼無效！")
-                final_total = total
-                
-            st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
-            st.write("---")
+            if os.path.exists("qr.jpg"):
+                st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
-            pay_method = st.radio(
-                "💳 請選擇您的付款方式：", 
-                ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
-                index=None
-            )
-            
-            payment_closing_text = ""
-            is_button_disabled = True 
-            
-            if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
-                st.error("⚠️ 您選擇了外送，請在上方購物車內填寫「完整外送地址」，才可以發送訂單喔！")
-                is_button_disabled = True
-            elif dining_type == "內用 🍽️" and not table_number:
-                st.error("⚠️ 您選擇了內用，請在上方購物車內填寫「桌號」，才可以發送訂單喔！")
-                is_button_disabled = True
-            elif pay_method is None:
-                st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
-                is_button_disabled = True
-            elif pay_method == "DuitNow 線上轉賬":
-                # 🔥 改用安全的標準元件，徹底防止引號引起的 SyntaxError
-                st.warning("💳 DuitNow 轉賬收款說明\n\n請手動轉賬總金額至老闆賬號：\n📞 號碼：010-9456359")
-                
-                if os.path.exists("qr.jpg"):
-                    st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
-                
-                st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
-                payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
+            st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
+            payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
+            is_button_disabled = False 
+        else:
+            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
+            payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
+            is_button_disabled = False 
+        
+        safe_dining = "Takeaway"
+        if dining_type and "內用" in dining_type:
