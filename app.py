@@ -204,7 +204,7 @@ with col2:
         whatsapp_text += f"💬 顧客留言: {payment_closing_text}"
         
         encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
         st.write("---")
         if st.button("🚀 確認無誤，送出訂單到 WhatsApp", key="submit_order", disabled=is_button_disabled, use_container_width=True):
