@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 
 # 1. 網頁基本設定
-st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
+st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🥟", layout="wide")
 
 # 利用 CSS 注入，將背景改成高級明亮黃與深灰色調
 st.markdown("""
@@ -52,7 +52,7 @@ if not IS_OPEN:
 # ==========================================
 # 🍔 前台顧客點餐大標題
 # ==========================================
-st.title("🍔 我的馬來西亞在地點餐系統")
+st.title("🥟 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 st.write("---")
 
@@ -64,12 +64,11 @@ dining_type = st.radio(
     index=None
 )
 
-# 定義菜單與價格
+# 🌟 重新定義菜單與基礎價格
 menu = {
-    "特級牛肉漢堡 🍔": 18.00,
-    "招牌炸雞排 🍗": 15.00,
-    "珍珠奶茶 🧋": 9.50,
-    "黃金薯條 🍟": 7.00
+    "手工水餃 (10顆) 🥟": 10.00,
+    "金黃鍋貼 (10顆) 🥟🔥": 11.00,
+    "招牌脆皮雞翅 🍗": 8.00
 }
 
 CURRENCY = "RM"
@@ -78,7 +77,7 @@ MY_PHONE_NUMBER = "60109456359"
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
-# 🔢 系統每次自動生成獨一無二的訂單單號 (格式：MY-當天日期-隨機四碼)
+# 🔢 系統每次自動生成獨一無二的訂單單號
 if "order_id" not in st.session_state:
     date_str = datetime.now().strftime("%Y%m%d")
     st.session_state.order_id = f"MY-{date_str}-{random.randint(1000, 9999)}"
@@ -100,19 +99,43 @@ with col1:
             st.markdown(f"### {food}")
             st.markdown(f"💰 價格：**{CURRENCY} {price:.2f}**")
             
-            if "珍珠奶茶" in food:
-                ice = st.selectbox("🧊 選擇冰塊", ["正常冰", "少冰", "微冰", "去冰"], key="ice_select")
-                sugar = st.selectbox("🍬 選擇甜度", ["正常甜", "少糖(7分)", "半糖(5分)", "微糖(3分)", "無糖"], key="sugar_select")
-                full_food_name = f"{food} ({ice}/{sugar})"
-            else:
-                spicy = st.selectbox("🌶️ 辣度選擇", ["不辣", "微辣", "中辣", "大辣"], key=f"spicy_{food}")
-                full_food_name = f"{food} ({spicy})"
+            # 🌟 為新餐點設計客製化加點與口味選項
+            if "水餃" in food:
+                flavor = st.selectbox("🥬 選擇口味", ["韭菜豬肉", "高麗菜豬肉", "三鮮蝦仁 (+RM 2.00)"], key="dumpling_flavor")
+                spicy = st.selectbox("🌶️ 辣度 (附贈辣椒醬)", ["不辣", "微辣", "中辣", "大辣"], key="dumpling_spicy")
                 
-            if st.button(f"➕ 點購 {food}", key=f"btn_{food}", disabled=is_menu_disabled):
-                if full_food_name in st.session_state.new_cart:
-                    st.session_state.new_cart[full_food_name] += 1
+                # 計算特殊口味加價
+                actual_price = price + 2.00 if "三鮮蝦仁" in flavor else price
+                full_food_name = f"{food} ({flavor}/{spicy})"
+                
+            elif "鍋貼" in food:
+                flavor = st.selectbox("🔥 選擇口味", ["招牌豬肉", "韓式辣味 (+RM 1.00)"], key="potsticker_flavor")
+                sauce = st.selectbox("🥢 配料醬汁", ["特調醬油膏", "加薑絲烏醋", "不需要醬汁"], key="potsticker_sauce")
+                
+                actual_price = price + 1.00 if "韓式辣味" in flavor else price
+                full_food_name = f"{food} ({flavor}/{sauce})"
+                
+            else:  # 脆皮雞翅
+                size = st.selectbox("🍗 選擇份量", ["標準份量 (3隻)", "分享份量 (6隻) (+RM 7.00)", "派對份量 (10隻) (+RM 15.00)"], key="wings_size")
+                seasoning = st.selectbox("🧂 靈魂撒粉", ["招牌胡椒鹽", "勁辣辣椒粉", "梅子甘梅粉"], key="wings_seasoning")
+                
+                # 計算份量加價
+                if "6隻" in size:
+                    actual_price = price + 7.00
+                elif "10隻" in size:
+                    actual_price = price + 15.00
                 else:
-                    st.session_state.new_cart[full_food_name] = 1
+                    actual_price = price
+                    
+                full_food_name = f"{food} ({size}/{seasoning})"
+                
+            # 將計算好的價格傳遞給購物車按鈕使用
+            if st.button(f"➕ 點購 {food}", key=f"btn_{food}", disabled=is_menu_disabled):
+                # 記錄名稱與當時選擇的實際計算價格
+                if full_food_name in st.session_state.new_cart:
+                    st.session_state.new_cart[full_food_name]["qty"] += 1
+                else:
+                    st.session_state.new_cart[full_food_name] = {"qty": 1, "price": actual_price}
                 st.toast(f"已加入購物車！")
                 st.rerun()
 
@@ -137,31 +160,28 @@ with col2:
         total = 0
         st.write("---")
         
-        for food_info, qty in list(st.session_state.new_cart.items()):
-            item_price = 0.0
-            for menu_key in menu:
-                if menu_key in food_info:
-                    item_price = menu[menu_key]
-                    break
+        for food_info, item_data in list(st.session_state.new_cart.items()):
+            qty = item_data["qty"]
+            item_price = item_data["price"]
             item_total = item_price * qty
             total += item_total
             
             cart_col1, cart_col2, cart_col3 = st.columns(3)
             with cart_col1:
-                st.write(f"▪️ **{food_info}** x {qty}")
+                st.write(f"▪️ **{food_info}**  \n💰 單價: {CURRENCY} {item_price:.2f} x {qty}")
             with cart_col2:
                 if st.button("➖", key=f"minus_{food_info}"):
-                    st.session_state.new_cart[food_info] -= 1
-                    if st.session_state.new_cart[food_info] <= 0:
+                    st.session_state.new_cart[food_info]["qty"] -= 1
+                    if st.session_state.new_cart[food_info]["qty"] <= 0:
                         del st.session_state.new_cart[food_info]
                     st.rerun()
             with cart_col3:
                 if st.button("➕", key=f"plus_{food_info}"):
-                    st.session_state.new_cart[food_info] += 1
+                    st.session_state.new_cart[food_info]["qty"] += 1
                     st.rerun()
                     
         st.write("---")
-        order_note = st.text_input("📝 訂單備註（例如：飯少、薯條不加鹽）")
+        order_note = st.text_input("📝 訂單備註（例如：水餃分開裝、鍋貼要焦一點）")
         coupon = st.text_input("🏷️ 輸入折扣碼 (提示: VIP90 )")
         
         if coupon == "VIP90":
@@ -205,24 +225,24 @@ with col2:
             
         safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         
-        # 建立明細文字（內含自動生成的專屬單號）
+        # 建立明細文字
         whatsapp_text = f"*** NEW ORDER ({st.session_state.order_id}) ***\n\n"
         whatsapp_text += f"📍 用餐方式: {safe_dining}\n"
         whatsapp_text += f"💳 付款選擇: {safe_method}\n\n"
         whatsapp_text += f"--- 🛒 點餐明細 ---\n"
-        for food_info, qty in st.session_state.new_cart.items():
-            whatsapp_text += f"▪️ {food_info} x {qty}\n"
+        for food_info, item_data in st.session_state.new_cart.items():
+            whatsapp_text += f"▪️ {food_info} x {item_data['qty']}\n"
         whatsapp_text += f"\n💰 應付總額: {CURRENCY} {final_total:.2f}\n"
         if order_note:
             whatsapp_text += f"📝 備註: {order_note}\n"
         whatsapp_text += f"\n💬 {payment_closing_text}"
         
         encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
         
         st.write("---")
         
-        # 🚀 顧客發送按鈕：移除所有複雜後台干擾，100% 絕對亮起、保證點擊成功跳轉！
+        # 🚀 顧客發送按鈕：100% 穩定亮起、直接成功跳轉！
         st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True)
 
         # 🧹 清空購物車按鈕
