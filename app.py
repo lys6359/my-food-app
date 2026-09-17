@@ -6,46 +6,6 @@ import os
 # 1. 網頁基本設定
 st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
 
-# 🔥【UI修正】：精準控制 CSS，避免污染 st.success, st.info, st.error 的文字顏色
-st.markdown("""
-    <style>
-    .stApp {
-        background-color: #FBBF24; 
-        color: #1F2937;
-    }
-    h1, h2 {
-        color: #000000 !important;
-        font-weight: 800 !important;
-    }
-    /* 只針對選單與產品的 Container 渲染，不影響提示框 */
-    [data-testid="ststyle"] div[data-testid="stVerticalBlock"] > div {
-        border-radius: 16px;
-    }
-    /* 讓自訂的黑底餐點外框更好看 */
-    .custom-card {
-        background-color: #1F2937 !important; 
-        border-radius: 16px !important;
-        padding: 20px !important;
-        margin-bottom: 15px !important;
-        color: #FFFFFF !important;
-    }
-    .custom-card h3, .custom-card p, .custom-card span {
-        color: #FFFFFF !important;
-    }
-    .custom-card button {
-        background-color: #FBBF24 !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
-        border: none !important;
-    }
-    /* 修正按鈕樣式 */
-    div.stButton > button {
-        font-weight: bold !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # 老闆專用控制台
 IS_OPEN = True 
 
@@ -58,13 +18,29 @@ if not IS_OPEN:
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-# 🔥【防呆鎖定】：為關鍵元件加上 key，確保上傳檔案時選擇的狀態不會消失
+# 2. 初始化所有 Session State 狀態（防止上傳檔案時資料遺失鎖死按鈕）
+if "new_cart" not in st.session_state:
+    st.session_state.new_cart = {}
+
+if "order_id" not in st.session_state:
+    st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
+
+# 強制給用餐方式、地址和桌號一個初始狀態
+if "dining_choice" not in st.session_state:
+    st.session_state.dining_choice = None
+if "addr_val" not in st.session_state:
+    st.session_state.addr_val = ""
+if "table_val" not in st.session_state:
+    st.session_state.table_val = ""
+if "pay_choice" not in st.session_state:
+    st.session_state.pay_choice = None
+
+# 用餐方式單選框
 dining_type = st.radio(
     "🥡 請選擇您的用餐方式：", 
     ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
     horizontal=True,
-    index=None,
-    key="main_dining_type"
+    key="dining_choice" # 用 key 自動鎖定狀態
 )
 
 menu = {
@@ -77,12 +53,7 @@ menu = {
 CURRENCY = "RM"
 MY_PHONE_NUMBER = "60109456359"
 
-if "new_cart" not in st.session_state:
-    st.session_state.new_cart = {}
-
-if "order_id" not in st.session_state:
-    st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
-
+# 3. 建立兩欄網頁排版
 col1, col2 = st.columns(2)
 
 with col1:
@@ -95,13 +66,7 @@ with col1:
         is_menu_disabled = False
 
     for food, price in menu.items():
-        # 使用自訂的 HTML class 避免元件色彩打架
-        st.markdown(f"""
-            <div class="custom-card">
-                <h3>{food}</h3>
-                <p>💰 價格：<b>{CURRENCY} {price:.2f}</b></p>
-            </div>
-        """, unsafe_allow_html=True)
+        st.info(f"### {food} \n💰 價格：**{CURRENCY} {price:.2f}**")
         
         if "珍珠奶茶" in food:
             ice = st.selectbox("🧊 選擇冰塊", ["正常冰", "少冰", "微冰", "去冰"], key="ice_select")
@@ -125,13 +90,11 @@ with col2:
     display_type = dining_type if dining_type else "⚠️ 尚未選擇"
     st.markdown(f"✨ 目前選擇：**{display_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") 
     
-    delivery_address = ""
-    table_number = ""
-    
+    # 這裡綁定 key="addr_val" 和 key="table_val"，確保上傳檔案重整時內容不消失
     if dining_type == "外送 / 食物配送 🚗":
-        delivery_address = st.text_input("🏠 請輸入您的完整外送地址 (Delivery Address)：", key="input_address")
+        st.text_input("🏠 請輸入您的完整外送地址 (Delivery Address)：", key="addr_val")
     elif dining_type == "內用 🍽️":
-        table_number = st.text_input("🔢 請輸入您的桌號 (Table Number)：", key="input_table")
+        st.text_input("🔢 請輸入您的桌號 (Table Number)：", key="table_val")
     
     if not st.session_state.new_cart:
         st.write("購物車目前是空的喔！")
@@ -152,9 +115,10 @@ with col2:
             
             items_summary_text += f"- {food_info} x{qty} ({CURRENCY} {item_total:.2f})\n"
             
-            cart_col1, cart_col2, cart_col3 = st.columns([2, 1, 1])
+            # 🔥【全新安全欄位排版】：文字與數量綁在一起，右邊只放按鈕，解決數量看不到的問題！
+            cart_col1, cart_col2, cart_col3 = st.columns([6, 2, 2])
             with cart_col1:
-                st.write(f"▪️ **{food_info}**")
+                st.markdown(f"▪️ **{food_info}**  \n🔢 數量：` {qty} `")
             with cart_col2:
                 if st.button("➖", key=f"minus_{food_info}"):
                     st.session_state.new_cart[food_info] -= 1
@@ -186,40 +150,32 @@ with col2:
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
-            index=None,
-            key="main_pay_method"
+            key="pay_choice" # 用 key 自動鎖定狀態
         )
         
         payment_closing_text = ""
-        
-        # 🔥【邏輯重組】：先做動態欄位檢查，確保變數完整通過後才放行按鈕
         requirements_pass = True
         
-        if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
-            st.error("⚠️ 您選擇了外送，請在上方填寫「完整外送地址」！")
+        # 嚴格且安全的防呆檢查（抓取 Session State 的最新即時值）
+        if dining_type == "外送 / 食物配送 🚗" and not st.session_state.addr_val:
+            st.error("⚠️ 您選擇了外送，請在上方填寫「完整外送地址」後才可以送出訂單！")
             requirements_pass = False
-        elif dining_type == "內用 🍽️" and not table_number:
-            st.error("⚠️ 您選擇了內用，請在上方填寫「桌號」！")
+        elif dining_type == "內用 🍽️" and not st.session_state.table_val:
+            st.error("⚠️ 您選擇了內用，請在上方填寫「桌號」後才可以送出訂單！")
             requirements_pass = False
             
         if pay_method is None:
-            st.error("⚠️ 請選擇您的付款方式！")
+            st.error("⚠️ 請選擇您的付款方式後才可以送出訂單！")
             requirements_pass = False
         elif pay_method == "DuitNow 線上轉賬":
-            st.markdown(f"""
-                <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
-                    <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
-                    <p style="margin: 0px; font-size: 15px; color: #FFFFFF !important;">請手動轉賬總金額至老闆賬號：</p>
-                    <p style="margin: 5px 0px; font-size: 18px; font-weight: bold; color: #FBBF24 !important;">📞 號碼：010-9456359</p>
-                </div>
-            """, unsafe_allow_html=True)
+            st.warning("💳 請手動轉賬總金額至老闆 DuitNow 賬號： 📞 號碼：010-9456359")
             
             if os.path.exists("qr.jpg"):
                 st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             uploaded_receipt = st.file_uploader("📸 上傳您的付款收據截圖 (選填)", type=["jpg", "png", "jpeg"], key="receipt_uploader")
             if uploaded_receipt is not None:
-                st.success("✅ 收據已成功載入！請點擊下方按鈕將訂單發送到 WhatsApp。")
+                st.success("✅ 收據已成功載入！")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
@@ -227,14 +183,14 @@ with col2:
             st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
 
-        # 按鈕啟用狀態設定
+        # 決定最終按鈕是否開啟
         is_button_disabled = not requirements_pass
         
         safe_dining = "Takeaway"
         if dining_type == "內用 🍽️":
-            safe_dining = f"Dine-in (Table: {table_number})"
+            safe_dining = f"Dine-in (Table: {st.session_state.table_val})"
         elif dining_type == "外送 / 食物配送 🚗":
-            safe_dining = f"Delivery (Address: {delivery_address})"
+            safe_dining = f"Delivery (Address: {st.session_state.addr_val})"
             
         safe_method = "DuitNow QR" if pay_method == "DuitNow 線上轉賬" else "Cash"
         
@@ -251,7 +207,6 @@ with col2:
         whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
         
         st.write("---")
-        # 套用用 container 寬度的滿版大按鈕
         if st.button("🚀 確認無誤，送出訂單到 WhatsApp", key="submit_order", disabled=is_button_disabled, use_container_width=True):
             st.session_state.new_cart = {}
             st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
