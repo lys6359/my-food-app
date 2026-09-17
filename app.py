@@ -132,6 +132,9 @@ with col2:
         total = 0
         st.write("---")
         
+        # 用於記錄文字明細發送給老闆
+        items_summary_text = ""
+        
         for food_info, qty in list(st.session_state.new_cart.items()):
             item_price = 0.0
             for menu_key in menu:
@@ -141,7 +144,10 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            cart_col1, cart_col2, cart_col3 = st.columns(3)
+            # 建立購物車格式字串
+            items_summary_text += f"- {food_info} x{qty} ({CURRENCY} {item_total:.2f})\n"
+            
+            cart_col1, cart_col2, cart_col3 = st.columns([2, 1, 1])
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
             with cart_col2:
@@ -201,7 +207,16 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+            # 檢查並顯示你的 qr.jpg
+            if os.path.exists("qr.jpg"):
+                st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+            else:
+                st.warning("⚠️ 找不到 qr.jpg 圖片檔案，請確保它上傳在專案根目錄中。")
+            
+            # 【新增優化功能】：讓顧客可以直接上傳付款收據截圖存檔提示
+            uploaded_receipt = st.file_uploader("📸 上傳您的付款收據截圖 (選填)", type=["jpg", "png", "jpeg"])
+            if uploaded_receipt is not None:
+                st.success("✅ 收據已成功載入！請點擊下方按鈕將訂單發送到 WhatsApp。")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
@@ -212,50 +227,40 @@ with col2:
             is_button_disabled = False 
         
         # 轉換成乾淨、全文字、絕不碎單的格式
-        safe_dining = "Dine-in" if "內用" in dining_type else "Takeaway"
-        if "外送" in dining_type:
-            safe_dining = f"Delivery (Address: {delivery_address})"
-        elif "內用" in dining_type:
+        safe_dining = "Takeaway"
+        if dining_type == "內用 🍽️":
             safe_dining = f"Dine-in (Table: {table_number})"
+        elif dining_type == "外送 / 食物配送 🚗":
+            safe_dining = f"Delivery (Address: {delivery_address})"
             
-        # 🌟 【終極安全修復】：加入條件判斷，確保 pay_method 為 None 時不會卡死報錯
         if pay_method is not None:
             safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         else:
             safe_method = "Not Selected"
         
-        whatsapp_text = f"*** NEW ORDER ***\n\n"
-        whatsapp_text += f"Order ID: {st.session_state.order_id}\n"
-        whatsapp_text += f"Type: {safe_dining}\n"
-        whatsapp_text += f"Payment: {safe_method}\n"
-        whatsapp_text += f"-------------------------\n"
+        # 4. 建構發送至 WhatsApp 的大字串（絕不碎單）
+        whatsapp_text = f"*** 🍔 NEW ORDER ({st.session_state.order_id}) ***\n\n"
+        whatsapp_text += f"📅 訂單單號: {st.session_state.order_id}\n"
+        whatsapp_text += f"🥡 用餐方式: {safe_dining}\n"
+        whatsapp_text += f"💳 付款方式: {safe_method}\n"
+        whatsapp_text += f"📝 訂單備註: {order_note if order_note else '無'}\n\n"
+        whatsapp_text += f"【 🛒 點餐明細 】\n{items_summary_text}\n"
+        whatsapp_text += f"💰 總計金額: {CURRENCY} {final_total:.2f}\n\n"
+        whatsapp_text += f"💬 顧客留言: {payment_closing_text}"
         
-        for food_info, qty in st.session_state.new_cart.items():
-            clean_food = food_info.replace("🍔", "").replace("🍗", "").replace("🧋", "").replace("🍟", "").strip()
-            item_price = 0.0
-            for menu_key in menu:
-                if menu_key in food_info:
-                    item_price = menu[menu_key]
-                    break
-            whatsapp_text += f"- {clean_food} x {qty} - {CURRENCY} {(item_price*qty):.2f}\n"
-            
-        whatsapp_text += f"-------------------------\n"
-        if order_note:
-            whatsapp_text += f"Note: {order_note}\n"
-        whatsapp_text += f"Total Amount: {CURRENCY} {final_total:.2f}\n\n"
-        whatsapp_text += payment_closing_text
-        
+        # URL 編碼轉化
         encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
         
-        st.link_button(
-            "📱 點擊發送訂單至 WhatsApp", 
-            whatsapp_url, 
-            type="primary", 
-            use_container_width=True,
-            disabled=is_button_disabled
-        )
-        
-        if st.button("🗑️ 清空購物車"):
+        # 5. 送出訂單按鈕
+        st.write("---")
+        if st.button("🚀 確認無誤，送出訂單到 WhatsApp", key="submit_order", disabled=is_button_disabled, use_container_width=True):
+            # 清空購物車以防重複提交，並生成新單號
             st.session_state.new_cart = {}
+            st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
+            
+            # JavaScript 自動跳轉至 WhatsApp
+            js = f"window.open('{whatsapp_url}')"
+            st.components.v1.html(f"<script>{js}</script>", height=0, width=0)
+            st.success("🎉 訂單已生成！正在為您開啟 WhatsApp 連線老闆...")
             st.rerun()
