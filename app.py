@@ -49,21 +49,21 @@ if not IS_OPEN:
         st.markdown("<p style='text-align: center; font-size: 18px; color: #FFFFFF !important;'>謝謝您的光臨！我們目前的營業時間已結束，明天請早喔！🙏</p>", unsafe_allow_html=True)
     st.stop() 
 
-# 🌟 初始化 Session State
+# 初始化 Session State
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
 if "order_id" not in st.session_state:
     st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
 
-# 🌟 新增：初始化老闆後台的訂單歷史儲存庫
+# 初始化老闆後台的訂單歷史儲存庫
 if "order_history" not in st.session_state:
     st.session_state.order_history = []
 
-# 🌟 新增：側邊欄登入區塊，用來隨時切換查看後台
+# 側邊欄登入區塊，用來隨時切換查看後台
 st.sidebar.title("🛠️ 老闆控制台")
 admin_password = st.sidebar.text_input("🔑 輸入後台登入密碼", type="password")
-is_admin_mode = (admin_password == "boss6359") # 預設密碼，你可以自己改
+is_admin_mode = (admin_password == "boss6359") # 預設密碼
 
 if is_admin_mode:
     # ==================== 【📊 老闆後台管理面板】 ====================
@@ -116,7 +116,7 @@ else:
     st.title("🍔 我的馬來西亞在地點餐系統")
     st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-    # 用餐方式新增「食物配送 🚗」，並且預設為 None (強制顧客先選擇)
+    # 用餐方式單選
     dining_type = st.radio(
         "🥡 請選擇您的用餐方式：", 
         ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
@@ -257,6 +257,9 @@ else:
                 st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
                 is_button_disabled = True
             elif pay_method == "DuitNow 線上轉賬":
-                # 🔥 使用安全的基礎結構，防範 IndentationError 縮進出錯
-                st.markdown(f"""
-                    <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
+                # 🔥 改用官方標準安全元件，徹底根除 `SyntaxError` 錯誤
+                st.warning("💳 DuitNow 轉賬收款說明\n\n請手動轉賬總金額至老闆賬號：\n📞 號碼：010-9456359")
+                
+                if os.path.exists("qr.jpg"):
+                    st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+                
