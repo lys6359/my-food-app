@@ -55,12 +55,70 @@ if not IS_OPEN:
     st.stop() 
 
 # ==========================================
-# 🍔 前台顧客點餐系統
+# 🍔 網頁最上方大標題
 # ==========================================
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-# 用餐方式
+# ==========================================
+# 👨‍🍳 老闆隱藏式管理後台（🌟全新移至網頁最上方，確保100%看得到）
+# ==========================================
+# 用一個小摺疊面板把密碼框收納起來，平時不影響顧客看菜單
+with st.expander("🛠️ 店家專屬控制台 (老闆對帳請點此展開)"):
+    admin_password = st.text_input("🔑 請輸入管理員密碼：", type="password", key="admin_pwd_top")
+    
+    if admin_password == "1234":  # 老闆密碼
+        st.success("🔓 密碼正確！已開啟今日訂單即時監控中心")
+        
+        if not st.session_state.backend_orders_db:
+            st.info("📭 目前尚無任何自動生成的訂單紀錄。")
+        else:
+            st.write(f"📈 今日系統已自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
+            
+            # 將今天的訂單自動整理成表格並提供 Excel/CSV 下載一鍵匯出
+            export_data = []
+            for order in st.session_state.backend_orders_db:
+                items_text = ", ".join([f"{k}x{v}" for k, v in order['items'].items()])
+                export_data.append({
+                    "訂單單號": order['order_id'],
+                    "下單時間": order['time'],
+                    "用餐方式": order['dining_type'],
+                    "付款方式": order['pay_method'],
+                    "點餐明細": items_text,
+                    "應付總額": order['total'],
+                    "客戶備註": order['note']
+                })
+            
+            df = pd.DataFrame(export_data)
+            csv_buffer = df.to_csv(index=False).encode('utf-8-sig')
+            
+            # 渲染下載報表按鈕
+            st.download_button(
+                label="📥 點我下載今日訂單報表 (CSV 檔案)",
+                data=csv_buffer,
+                file_name=f"今日訂單報表_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            
+            st.write("---")
+            # 詳細列表摺疊面板，方便現場即時肉眼看單
+            for order in st.session_state.backend_orders_db:
+                with st.expander(f"📋 單號：{order['order_id']} (時間: {order['time']})"):
+                    st.write(f"**📍 用餐方式:** {order['dining_type']}")
+                    st.write(f"**💳 付款方式:** {order['pay_method']}")
+                    st.write(f"**💰 總金額:** {order['total']}")
+                    st.write("**🛒 餐點明細:**")
+                    for item, qty in order['items'].items():
+                        st.write(f"- {item} x {qty}")
+                    if order['note']:
+                        st.write(f"**📝 備註:** {order['note']}")
+
+st.write("---") # 分隔線
+
+# ==========================================
+# 🥡 用餐方式選擇
+# ==========================================
 dining_type = st.radio(
     "🥡 請選擇您的用餐方式：", 
     ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
@@ -82,12 +140,12 @@ MY_PHONE_NUMBER = "60109456359"
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
-# 自動生成唯一的訂單單號 (結合當前日期與隨機數，格式如：MY-20260917-1024)
+# 自動生成唯一的訂單單號
 if "order_id" not in st.session_state:
     date_str = datetime.now().strftime("%Y%m%d")
     st.session_state.order_id = f"MY-{date_str}-{random.randint(1000, 9999)}"
 
-# 3. 建立兩欄網頁排版
+# 建立兩欄網頁排版
 col1, col2 = st.columns(2)
 
 with col1:
@@ -214,57 +272,3 @@ with col2:
             
         safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         
-        # 建立 WhatsApp 訊息文字
-        whatsapp_text = f"*** NEW ORDER ({st.session_state.order_id}) ***\n\n"
-        whatsapp_text += f"📍 用餐方式: {safe_dining}\n"
-        whatsapp_text += f"💳 付款選擇: {safe_method}\n\n"
-        whatsapp_text += f"--- 🛒 點餐明細 ---\n"
-        
-        for food_info, qty in st.session_state.new_cart.items():
-            whatsapp_text += f"▪️ {food_info} x {qty}\n"
-            
-        whatsapp_text += f"\n💰 應付總額: {CURRENCY} {final_total:.2f}\n"
-        if order_note:
-            whatsapp_text += f"📝 備註: {order_note}\n"
-        whatsapp_text += f"\n💬 {payment_closing_text}"
-        
-        encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
-        
-        st.write("---")
-        
-        # 🌟 顧客發送按鈕：無條件 100% 穩定渲染
-        st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True)
-
-        # 默默在背景把資料塞進老闆後台（只要走到結帳畫面就自動記錄）
-        if not any(o['order_id'] == st.session_state.order_id for o in st.session_state.backend_orders_db):
-            st.session_state.backend_orders_db.append({
-                "order_id": st.session_state.order_id,
-                "time": datetime.now().strftime("%H:%M:%S"),
-                "dining_type": safe_dining,
-                "pay_method": safe_method,
-                "items": dict(st.session_state.new_cart),
-                "total": f"{CURRENCY} {final_total:.2f}",
-                "note": order_note
-            })
-
-        # 🌟 新增功能 1：一鍵清空購物車並更換新單號的黃色大按鈕
-        st.write("") 
-        if st.button("🧹 清空購物車並開始新訂單", use_container_width=True):
-            st.session_state.new_cart = {}  # 清空食物明細
-            # 強制刷新並隨機生成一組下一筆的全新單號
-            next_date_str = datetime.now().strftime("%Y%m%d")
-            st.session_state.order_id = f"MY-{next_date_str}-{random.randint(1000, 9999)}"
-            st.toast("購物車已成功清空，單號已自動更新！")
-            st.rerun()
-            
-        # 軟性防呆提示
-        if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
-            st.warning(" 💡 溫馨提示：您選擇了外送，請記得在上方填寫「完整外送地址」，這樣發送給老闆的訊息才會包含地址喔！")
-        elif dining_type == "內用 🍽️" and not table_number:
-            st.warning(" 💡 溫馨提示：您選擇了內用，請記得在上方填寫「桌號」，這樣方便老闆送餐喔！")
-
-# ==========================================
-# 👨‍🍳 老闆隱藏式管理後台（獨立移至最底部）
-# ==========================================
-st.write("<br><br><hr>", unsafe_allow_html=True)
