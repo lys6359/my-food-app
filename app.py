@@ -228,7 +228,7 @@ with col2:
         whatsapp_text += f"\n💬 {payment_closing_text}"
         
         encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
         st.write("---")
         
