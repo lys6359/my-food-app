@@ -241,10 +241,13 @@ else:
             st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
             st.write("---")
             
-            # 付款方式選擇
+            # 🔥【終極解法】：使用英文變數名稱對齊，避免任何中文字串縮進錯誤
+            PAY_QR = "DuitNow 線上轉賬"
+            PAY_CASH = "到店支付現金 / 拿食物時付款"
+            
             pay_method = st.radio(
                 "💳 請選擇您的付款方式：", 
-                ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
+                [PAY_QR, PAY_CASH],
                 index=None
             )
             
@@ -261,4 +264,3 @@ else:
             elif pay_method is None:
                 st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
                 is_button_disabled = True
-            elif pay_method == "DuitNow 線上轉賬":
