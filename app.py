@@ -64,7 +64,7 @@ dining_type = st.radio(
     index=None
 )
 
-# 🌟 重新定義菜單與基礎價格
+# 重新定義菜單與基礎價格
 menu = {
     "手工水餃 (10顆) 🥟": 10.00,
     "金黃鍋貼 (10顆) 🥟🔥": 11.00,
@@ -77,7 +77,7 @@ MY_PHONE_NUMBER = "60109456359"
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
-# 🔢 系統每次自動生成獨一無二的訂單單號
+# 自動生成唯一的訂單單號
 if "order_id" not in st.session_state:
     date_str = datetime.now().strftime("%Y%m%d")
     st.session_state.order_id = f"MY-{date_str}-{random.randint(1000, 9999)}"
@@ -99,12 +99,11 @@ with col1:
             st.markdown(f"### {food}")
             st.markdown(f"💰 價格：**{CURRENCY} {price:.2f}**")
             
-            # 🌟 為新餐點設計客製化加點與口味選項
+            # 為新餐點設計客製化加點與口味選項
             if "水餃" in food:
                 flavor = st.selectbox("🥬 選擇口味", ["韭菜豬肉", "高麗菜豬肉", "三鮮蝦仁 (+RM 2.00)"], key="dumpling_flavor")
                 spicy = st.selectbox("🌶️ 辣度 (附贈辣椒醬)", ["不辣", "微辣", "中辣", "大辣"], key="dumpling_spicy")
                 
-                # 計算特殊口味加價
                 actual_price = price + 2.00 if "三鮮蝦仁" in flavor else price
                 full_food_name = f"{food} ({flavor}/{spicy})"
                 
@@ -119,7 +118,6 @@ with col1:
                 size = st.selectbox("🍗 選擇份量", ["標準份量 (3隻)", "分享份量 (6隻) (+RM 7.00)", "派對份量 (10隻) (+RM 15.00)"], key="wings_size")
                 seasoning = st.selectbox("🧂 靈魂撒粉", ["招牌胡椒鹽", "勁辣辣椒粉", "梅子甘梅粉"], key="wings_seasoning")
                 
-                # 計算份量加價
                 if "6隻" in size:
                     actual_price = price + 7.00
                 elif "10隻" in size:
@@ -129,10 +127,9 @@ with col1:
                     
                 full_food_name = f"{food} ({size}/{seasoning})"
                 
-            # 將計算好的價格傳遞給購物車按鈕使用
             if st.button(f"➕ 點購 {food}", key=f"btn_{food}", disabled=is_menu_disabled):
-                # 記錄名稱與當時選擇的實際計算價格
-                if full_food_name in st.session_state.new_cart:
+                # 確保格式正確寫入
+                if full_food_name in st.session_state.new_cart and isinstance(st.session_state.new_cart[full_food_name], dict):
                     st.session_state.new_cart[full_food_name]["qty"] += 1
                 else:
                     st.session_state.new_cart[full_food_name] = {"qty": 1, "price": actual_price}
@@ -152,6 +149,12 @@ with col2:
         delivery_address = st.text_input("🏠 請輸入您的完整外送地址 (Delivery Address):")
     elif dining_type == "內用 🍽️":
         table_number = st.text_input("🔢 請輸入您的桌號 (Table Number):")
+        
+    # 🌟 核心防禦：如果購物車內有不相容的舊資料，直接自動清空，徹底防止崩潰
+    for k, v in list(st.session_state.new_cart.items()):
+        if not isinstance(v, dict):
+            st.session_state.new_cart = {}
+            st.rerun()
     
     if not st.session_state.new_cart:
         st.write("購物車目前是空的喔！請從左側今日菜單點擊按鈕加入餐點。")
@@ -238,11 +241,11 @@ with col2:
         whatsapp_text += f"\n💬 {payment_closing_text}"
         
         encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me{MY_PHONE_NUMBER}?text={encoded_text}"
+        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
         st.write("---")
         
-        # 🚀 顧客發送按鈕：100% 穩定亮起、直接成功跳轉！
+        # 🚀 顧客發送按鈕
         st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True)
 
         # 🧹 清空購物車按鈕
