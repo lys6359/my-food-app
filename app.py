@@ -55,66 +55,61 @@ if not IS_OPEN:
     st.stop() 
 
 # ==========================================
-# 🍔 網頁最上方大標題
+# 🍔 頂部導覽列（包含標題與獨立的老闆後台彈窗）
 # ==========================================
-st.title("🍔 我的馬來西亞在地點餐系統")
-st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
+top_col1, top_col2 = st.columns([8, 2])
+with top_col1:
+    st.title("🍔 我的馬來西亞在地點餐系統")
+    st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-# ==========================================
-# 👨‍🍳 老闆隱藏式管理後台（🌟全新移至網頁最上方，確保100%看得到）
-# ==========================================
-# 用一個小摺疊面板把密碼框收納起來，平時不影響顧客看菜單
-with st.expander("🛠️ 店家專屬控制台 (老闆對帳請點此展開)"):
-    admin_password = st.text_input("🔑 請輸入管理員密碼：", type="password", key="admin_pwd_top")
-    
-    if admin_password == "1234":  # 老闆密碼
-        st.success("🔓 密碼正確！已開啟今日訂單即時監控中心")
-        
-        if not st.session_state.backend_orders_db:
-            st.info("📭 目前尚無任何自動生成的訂單紀錄。")
-        else:
-            st.write(f"📈 今日系統已自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
-            
-            # 將今天的訂單自動整理成表格並提供 Excel/CSV 下載一鍵匯出
-            export_data = []
-            for order in st.session_state.backend_orders_db:
-                items_text = ", ".join([f"{k}x{v}" for k, v in order['items'].items()])
-                export_data.append({
-                    "訂單單號": order['order_id'],
-                    "下單時間": order['time'],
-                    "用餐方式": order['dining_type'],
-                    "付款方式": order['pay_method'],
-                    "點餐明細": items_text,
-                    "應付總額": order['total'],
-                    "客戶備註": order['note']
-                })
-            
-            df = pd.DataFrame(export_data)
-            csv_buffer = df.to_csv(index=False).encode('utf-8-sig')
-            
-            # 渲染下載報表按鈕
-            st.download_button(
-                label="📥 點我下載今日訂單報表 (CSV 檔案)",
-                data=csv_buffer,
-                file_name=f"今日訂單報表_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-            
-            st.write("---")
-            # 詳細列表摺疊面板，方便現場即時肉眼看單
-            for order in st.session_state.backend_orders_db:
-                with st.expander(f"📋 單號：{order['order_id']} (時間: {order['time']})"):
-                    st.write(f"**📍 用餐方式:** {order['dining_type']}")
-                    st.write(f"**💳 付款方式:** {order['pay_method']}")
-                    st.write(f"**💰 總金額:** {order['total']}")
-                    st.write("**🛒 餐點明細:**")
-                    for item, qty in order['items'].items():
-                        st.write(f"- {item} x {qty}")
-                    if order['note']:
-                        st.write(f"**📝 備註:** {order['note']}")
+with top_col2:
+    # 🌟 使用獨立的 popover 元件，完全不影響主頁面渲染，100% 解決按鈕不見的問題
+    with st.popover("⚙️ 店家管理中心"):
+        admin_password = st.text_input("🔑 輸入管理員密碼：", type="password", key="admin_pwd_pop")
+        if admin_password == "1234":
+            st.success("🔓 登入成功")
+            if not st.session_state.backend_orders_db:
+                st.info("📭 目前尚無訂單紀錄。")
+            else:
+                st.write(f"📈 今日自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
+                
+                # 訂單資料轉換與匯出
+                export_data = []
+                for order in st.session_state.backend_orders_db:
+                    items_text = ", ".join([f"{k}x{v}" for k, v in order['items'].items()])
+                    export_data.append({
+                        "訂單單號": order['order_id'],
+                        "下單時間": order['time'],
+                        "用餐方式": order['dining_type'],
+                        "付款方式": order['pay_method'],
+                        "點餐明細": items_text,
+                        "應付總額": order['total'],
+                        "客戶備註": order['note']
+                    })
+                df = pd.DataFrame(export_data)
+                csv_buffer = df.to_csv(index=False).encode('utf-8-sig')
+                
+                st.download_button(
+                    label="📥 下載今日訂單報表 (CSV)",
+                    data=csv_buffer,
+                    file_name=f"今日訂單報表_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+                
+                st.write("---")
+                for order in st.session_state.backend_orders_db:
+                    with st.expander(f"📋 單號：{order['order_id']}"):
+                        st.write(f"**📍 用餐方式:** {order['dining_type']}")
+                        st.write(f"**💳 付款方式:** {order['pay_method']}")
+                        st.write(f"**💰 總金額:** {order['total']}")
+                        st.write("**🛒 明細:**")
+                        for item, qty in order['items'].items():
+                            st.write(f"- {item} x {qty}")
+                        if order['note']:
+                            st.write(f"**📝 備註:** {order['note']}")
 
-st.write("---") # 分隔線
+st.write("---") 
 
 # ==========================================
 # 🥡 用餐方式選擇
@@ -272,3 +267,4 @@ with col2:
             
         safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         
+        # 建立 WhatsApp 訊息文字
