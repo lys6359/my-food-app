@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 
 # 1. 網頁基本設定
-st.set_page_config(page_title="MY AI 網頁點餐系統 + 後台管理", page_icon="🍔", layout="wide")
+st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
 
 # 利用 CSS 注入，將背景改成高級明亮黃與深灰色調，並優化側邊欄與表格樣式
 st.markdown("""
@@ -128,7 +128,7 @@ MY_PHONE_NUMBER = "60109456359"
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
-# 🌟 自動生成唯一的訂單單號 (結合當前日期與隨機數，格式如：MY-20260917-1024)
+# 自動生成唯一的訂單單號 (結合當前日期與隨機數，格式如：MY-20260917-1024)
 if "order_id" not in st.session_state:
     date_str = datetime.now().strftime("%Y%m%d")
     st.session_state.order_id = f"MY-{date_str}-{random.randint(1000, 9999)}"
@@ -272,4 +272,4 @@ with col2:
             
         safe_method = "DuitNow QR" if pay_method and "DuitNow" in pay_method else "Cash"
         
-        # 建立明細文字
+        # 建立 WhatsApp 訊息文字
