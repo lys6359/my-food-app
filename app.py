@@ -56,72 +56,72 @@ if "new_cart" not in st.session_state:
 if "order_id" not in st.session_state:
     st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
 
-# 🌟 新增：初始化老闆後台的訂單歷史資料庫
+# 🌟 新增：初始化老闆後台的訂單歷史儲存庫
 if "order_history" not in st.session_state:
     st.session_state.order_history = []
 
-# --- 側邊欄：老闆後台登入入口 ---
+# --- 側邊欄導航面板 ---
 st.sidebar.title("🛠️ 系統選單")
-admin_password = st.sidebar.text_input("🔑 老闆登入密碼", type="password", help="輸入老闆專屬密碼以開啟後台管理面板")
+app_mode = st.sidebar.selectbox("請選擇系統頁面：", ["🛒 前台點餐系統", "📊 老闆後台面板"])
 
-# 判斷是否進入後台模式
-is_admin_mode = (admin_password == "boss6359") # 你可以自己修改這個預設密碼
-
-if is_admin_mode:
+if app_mode == "📊 老闆後台面板":
     # ==================== 【老闆後台管理面板】 ====================
-    st.sidebar.success("🔓 已成功登入老闆後台！")
     st.title("📊 老闆專屬後台管理面板 (Admin Dashboard)")
-    st.write("您可以在這裡即時查看顧客點單狀態、核對金流與統計今日營業額。")
+    admin_password = st.sidebar.text_input("🔑 請輸入老闆登入密碼", type="password")
     
-    if not st.session_state.order_history:
-        st.info("📭 目前還沒有收到任何顧客的訂單喔！當前台顧客點擊送出後，訂單會同步顯示在這裡。")
+    if admin_password != "boss6359":  # 您可以自行修改這個預設密碼
+        st.error("🔒 密碼錯誤或未輸入，您無權查看此管理後台！")
     else:
-        # 數據看板統計
-        total_orders = len(st.session_state.order_history)
-        sales_sum = sum(order["total_amount"] for order in st.session_state.order_history)
+        st.sidebar.success("🔓 已成功登入老闆後台！")
+        st.write("您可以在這裡即時查看顧客點單明細、核對金流與統計今日營業額。")
         
-        stat_col1, stat_col2 = st.columns(2)
-        with stat_col1:
-            st.metric(label="📈 今日總訂單量", value=f"{total_orders} 單")
-        with stat_col2:
-            st.metric(label="💰 今日總營業額", value=f"RM {sales_sum:.2f}")
+        if not st.session_state.order_history:
+            st.info("📭 目前還沒有收到任何顧客的訂單喔！當顧客在前台點擊送出後，訂單會自動存到這裡。")
+        else:
+            # 數據看板統計
+            total_orders = len(st.session_state.order_history)
+            sales_sum = sum(order["total_amount"] for order in st.session_state.order_history)
             
-        st.write("---")
-        st.subheader("📋 即時訂單列表")
-        
-        # 循環渲染每一筆訂單
-        for i, order in enumerate(st.session_state.order_history):
-            with st.expander(f"📋 單號：{order['id']} | 時間：{order['time']} | 狀態：【{order['status']}】", expanded=True):
-                col_a, col_b = st.columns([2, 1])
-                with col_a:
-                    st.markdown(f"**🥡 用餐方式**：{order['dining_type']}")
-                    st.markdown(f"**💳 付款方式**：{order['pay_method']}")
-                    st.markdown(f"**📝 訂單明細**：")
-                    st.text(order['details'])
-                    st.markdown(f"**💰 結帳總額**：RM {order['total_amount']:.2f}")
-                with col_b:
-                    # 讓老闆可以直接在網頁修改訂單狀態
-                    new_status = st.selectbox(
-                        "變更訂單狀態",
-                        ["待核對金流", "製作中", "配送/取餐中", "已完成", "已取消"],
-                        index=["待核對金流", "製作中", "配送/取餐中", "已完成", "已取消"].index(order['status']),
-                        key=f"status_{order['id']}_{i}"
-                    )
-                    if new_status != order['status']:
-                        st.session_state.order_history[i]['status'] = new_status
-                        st.toast(f"單號 {order['id']} 狀態已更新為：{new_status}")
-                        st.rerun()
+            stat_col1, stat_col2 = st.columns(2)
+            with stat_col1:
+                st.metric(label="📈 今日總訂單量", value=f"{total_orders} 單")
+            with stat_col2:
+                st.metric(label="💰 今日總營業額", value=f"RM {sales_sum:.2f}")
+                
+            st.write("---")
+            st.subheader("📋 即時訂單明細列表")
+            
+            # 渲染每一筆訂單
+            for i, order in enumerate(st.session_state.order_history):
+                with st.expander(f"📋 單號：{order['id']} | 時間：{order['time']} | 狀態：【{order['status']}】", expanded=True):
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        st.markdown(f"**🥡 用餐方式**：{order['dining_type']}")
+                        st.markdown(f"**💳 付款方式**：{order['pay_method']}")
+                        st.markdown(f"**💰 結帳總額**：RM {order['total_amount']:.2f}")
+                        st.markdown(f"**📝 訂單備註**：{order['note']}")
+                    with col_b:
+                        st.markdown(f"**🛒 點餐品項明細**：")
+                        st.text(order['details'])
                         
-    # 提供一個按鈕可以隨時回到前台點餐畫面看視覺效果
-    st.write("---")
-    st.caption("💡 提示：若要離開後台回前台，只需清空左側邊欄的密碼輸入框即可。")
+                        # 讓老闆可以直接在網頁修改訂單狀態
+                        new_status = st.selectbox(
+                            "變更訂單狀態",
+                            ["待核對金流", "製作中", "配送/取餐中", "已完成", "已取消"],
+                            index=["待核對金流", "製作中", "配送/取餐中", "已完成", "已取消"].index(order['status']),
+                            key=f"status_{order['id']}_{i}"
+                        )
+                        if new_status != order['status']:
+                            st.session_state.order_history[i]['status'] = new_status
+                            st.toast(f"單號 {order['id']} 狀態已更新為：{new_status}")
+                            st.rerun()
 
 else:
-    # ==================== 【還原回原本的純淨前台點餐系統】 ====================
+    # ==================== 【前台點餐系統 (還原原始版流程)】 ====================
     st.title("🍔 我的馬來西亞在地點餐系統")
     st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-    # 用餐方式單選框
+    # 用餐方式新增「食物配送 🚗」，並且預設為 None (強制顧客先選擇)
     dining_type = st.radio(
         "🥡 請選擇您的用餐方式：", 
         ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
@@ -129,6 +129,7 @@ else:
         index=None
     )
 
+    # 定義菜單與價格
     menu = {
         "特級牛肉漢堡 🍔": 18.00,
         "招牌炸雞排 🍗": 15.00,
@@ -136,6 +137,7 @@ else:
         "黃金薯條 🍟": 7.00
     }
 
+    # 馬來西亞專屬貨幣符號
     CURRENCY = "RM"
     MY_PHONE_NUMBER = "60109456359"
 
@@ -178,6 +180,7 @@ else:
         display_type = dining_type if dining_type else "⚠️ 尚未選擇"
         st.markdown(f"✨ 目前選擇：**{display_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") 
         
+        # 根據不同的用餐方式，動態彈出地址或桌號輸入框
         delivery_address = ""
         table_number = ""
         
@@ -193,7 +196,9 @@ else:
             total = 0
             st.write("---")
             
+            # 用於記錄純文字明細
             items_summary_text = ""
+            
             for food_info, qty in list(st.session_state.new_cart.items()):
                 item_price = 0.0
                 for menu_key in menu:
@@ -203,7 +208,7 @@ else:
                 item_total = item_price * qty
                 total += item_total
                 
-                items_summary_text += f"- {food_info} x{qty}\n"
+                items_summary_text += f"- {food_info} x {qty} ({CURRENCY} {item_total:.2f})\n"
                 
                 cart_col1, cart_col2, cart_col3 = st.columns(3)
                 with cart_col1:
@@ -257,7 +262,3 @@ else:
                 st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
                 is_button_disabled = True
             elif pay_method == "DuitNow 線上轉賬":
-                st.markdown(f"""
-                    <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
-                        <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
-                        <p style="margin: 0px; font-size: 15px;">請掃描下方 QR Code 或手動轉賬總金額至老闆賬號：</p>
