@@ -151,7 +151,7 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            cart_col1, cart_col2, cart_col3 = st.columns([2, 1, 1])
+            cart_col1, cart_col2, cart_col3 = st.columns()
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
             with cart_col2:
@@ -238,7 +238,7 @@ with col2:
             })
 
         st.write("---")
-        # 🚀 100% 絕對亮起、保證看得見的跳轉按鈕
+        # 🚀 100% 穩定呈現的跳轉按鈕
         st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True)
 
         # 🧹 清空購物車按鈕
@@ -264,6 +264,7 @@ if admin_password == "1234":  # 老闆密碼
     else:
         st.write(f"📈 今日系統已自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
         
-        # 🌟 修復核心：補全缺失的右大括號，語法完全正確
+        # 整理成表格供下載
         export_data = []
         for order in st.session_state.backend_orders_db:
+            items_text = ", ".join([f"{k}x{v}" for k, v in order['items'].items()])
