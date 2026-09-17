@@ -51,7 +51,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 初始化全域模擬數據庫：儲存所有成功送出的訂單（供老闆後台查閱）
+# 初始化全域模擬數據庫：儲儲所有成功送出的訂單（供老闆後台查閱）
 if "all_orders" not in st.session_state:
     st.session_state.all_orders = []
 
