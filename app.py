@@ -56,7 +56,7 @@ if "new_cart" not in st.session_state:
 if "order_id" not in st.session_state:
     st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
 
-# 🌟 新增：初始化老闆後台的訂單歷史儲存庫
+# 初始化老闆後台的訂單歷史儲存庫
 if "order_history" not in st.session_state:
     st.session_state.order_history = []
 
@@ -121,7 +121,7 @@ else:
     st.title("🍔 我的馬來西亞在地點餐系統")
     st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-    # 用餐方式新增「食物配送 🚗」，並且預設為 None (強制顧客先選擇)
+    # 用餐方式單選框
     dining_type = st.radio(
         "🥡 請選擇您的用餐方式：", 
         ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
