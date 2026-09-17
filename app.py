@@ -2,7 +2,6 @@ import streamlit as st
 import urllib.parse
 import random
 import os
-import pandas as pd  # 引入 pandas 用於處理訂單報表匯出
 from datetime import datetime
 
 # 1. 網頁基本設定
@@ -40,11 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 核心數據庫結構：儲存所有成功生成的歷史訂單
-if "backend_orders_db" not in st.session_state:
-    st.session_state.backend_orders_db = []
-
-# 老闆專用營業控制（預設營業）
+# 老闆專用營業控制：True = 正常營業 | False = 店鋪打烊
 IS_OPEN = True 
 
 if not IS_OPEN:
@@ -83,7 +78,7 @@ MY_PHONE_NUMBER = "60109456359"
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
-# 自動生成唯一的訂單單號
+# 🔢 系統每次自動生成獨一無二的訂單單號 (格式：MY-當天日期-隨機四碼)
 if "order_id" not in st.session_state:
     date_str = datetime.now().strftime("%Y%m%d")
     st.session_state.order_id = f"MY-{date_str}-{random.randint(1000, 9999)}"
@@ -210,7 +205,7 @@ with col2:
             
         safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         
-        # 建立 WhatsApp 訊息文字
+        # 建立明細文字（內含自動生成的專屬單號）
         whatsapp_text = f"*** NEW ORDER ({st.session_state.order_id}) ***\n\n"
         whatsapp_text += f"📍 用餐方式: {safe_dining}\n"
         whatsapp_text += f"💳 付款選擇: {safe_method}\n\n"
@@ -227,18 +222,8 @@ with col2:
         
         st.write("---")
         
-        # 🚀 顧客發送按鈕
-        if st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True):
-            if not any(o['order_id'] == st.session_state.order_id for o in st.session_state.backend_orders_db):
-                st.session_state.backend_orders_db.append({
-                    "order_id": st.session_state.order_id,
-                    "time": datetime.now().strftime("%H:%M:%S"),
-                    "dining_type": safe_dining,
-                    "pay_method": safe_method,
-                    "items": dict(st.session_state.new_cart),
-                    "total": f"{CURRENCY} {final_total:.2f}",
-                    "note": order_note
-                })
+        # 🚀 顧客發送按鈕：移除所有複雜後台干擾，100% 絕對亮起、保證點擊成功跳轉！
+        st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True)
 
         # 🧹 清空購物車按鈕
         st.write("") 
@@ -247,22 +232,3 @@ with col2:
             next_date_str = datetime.now().strftime("%Y%m%d")
             st.session_state.order_id = f"MY-{next_date_str}-{random.randint(1000, 9999)}"
             st.rerun()
-
-# ==========================================
-# 🛠️ 老闆隱藏式管理後台（置於網頁最下方）
-# ==========================================
-st.write("<br><br><br><br><hr>", unsafe_allow_html=True)
-st.subheader("🛠️ 店家專屬控制台")
-admin_password = st.text_input("🔑 請輸入管理員密碼以查看自動生成的訂單：", type="password", key="admin_pwd_fixed")
-
-if admin_password == "1234":  # 老闆密碼
-    st.success("🔓 密碼正確！已開啟今日訂單即時監控中心")
-    
-    if not st.session_state.backend_orders_db:
-        st.info("📭 目前尚無任何自動生成的訂單紀錄。")
-    else:
-        st.write(f"📈 今日系統已自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
-        
-        # 整理成表格
-        export_data = []
-        for order in st.session_state.backend_orders_db:
