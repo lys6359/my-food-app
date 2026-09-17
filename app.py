@@ -40,7 +40,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 核心數據庫結構：儲存所有成功生成的歷史訂單（供老闆後台查閱、匯出）
+# 核心數據庫結構：儲存所有成功生成的歷史訂單
 if "backend_orders_db" not in st.session_state:
     st.session_state.backend_orders_db = []
 
@@ -57,23 +57,20 @@ if not IS_OPEN:
 # ==========================================
 # 🍔 頂部導覽列（包含標題與獨立的老闆後台彈窗）
 # ==========================================
-top_col1, top_col2 = st.columns([8, 2])
+top_col1, top_col2 = st.columns([4, 1])
 with top_col1:
     st.title("🍔 我的馬來西亞在地點餐系統")
     st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
 with top_col2:
-    # 🌟 使用獨立的 popover 元件，完全不影響主頁面渲染，100% 解決按鈕不見的問題
-    with st.popover("⚙️ 店家管理中心"):
-        admin_password = st.text_input("🔑 輸入管理員密碼：", type="password", key="admin_pwd_pop")
+    with st.popover("⚙️ 店家管理"):
+        admin_password = st.text_input("🔑 管理員密碼：", type="password", key="admin_pwd_pop")
         if admin_password == "1234":
             st.success("🔓 登入成功")
             if not st.session_state.backend_orders_db:
                 st.info("📭 目前尚無訂單紀錄。")
             else:
-                st.write(f"📈 今日自動生成單號數量: **{len(st.session_state.backend_orders_db)}** 單")
-                
-                # 訂單資料轉換與匯出
+                st.write(f"📈 今日生成單號: {len(st.session_state.backend_orders_db)} 單")
                 export_data = []
                 for order in st.session_state.backend_orders_db:
                     items_text = ", ".join([f"{k}x{v}" for k, v in order['items'].items()])
@@ -111,9 +108,7 @@ with top_col2:
 
 st.write("---") 
 
-# ==========================================
-# 🥡 用餐方式選擇
-# ==========================================
+# 用餐方式選択
 dining_type = st.radio(
     "🥡 請選擇您的用餐方式：", 
     ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
@@ -194,6 +189,7 @@ with col2:
         total = 0
         st.write("---")
         
+        # 安全計價邏輯：防止名稱比對失敗導致崩潰
         for food_info, qty in list(st.session_state.new_cart.items()):
             item_price = 0.0
             for menu_key in menu:
@@ -203,7 +199,7 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            cart_col1, cart_col2, cart_col3 = st.columns(3)
+            cart_col1, cart_col2, cart_col3 = st.columns([2, 1, 1])
             with cart_col1:
                 st.write(f"▪️ **{food_info}** x {qty}")
             with cart_col2:
@@ -232,8 +228,8 @@ with col2:
             final_total = total
             
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
-        st.write("---")
         
+        # 🌟 核心修正：將發送與清空按鈕直接提到「總金額」正下方，緊接在後，保證絕對能畫出來
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"]
@@ -251,14 +247,13 @@ with col2:
             """, unsafe_allow_html=True)
             
             if os.path.exists("qr.jpg"):
-                st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
+                st.image("qr.jpg", width=220, caption="請截圖或銀行 App 掃描轉賬")
             
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
         else:
             st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
         
-        # 文字格式化
         safe_dining = "Takeaway (外帶)"
         if dining_type and "外送" in dining_type:
             safe_dining = f"Delivery (外送地址: {delivery_address})"
@@ -268,3 +263,6 @@ with col2:
         safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
         
         # 建立 WhatsApp 訊息文字
+        whatsapp_text = f"*** NEW ORDER ({st.session_state.order_id}) ***\n\n"
+        whatsapp_text += f"📍 用餐方式: {safe_dining}\n"
+        whatsapp_text += f"💳 付款選擇: {safe_method}\n\n"
