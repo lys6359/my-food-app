@@ -2,6 +2,7 @@ import streamlit as st
 import urllib.parse
 import random
 import os
+import pandas as pd  # 引入 pandas 用於處理訂單報表匯出
 from datetime import datetime
 
 # 1. 網頁基本設定
@@ -39,14 +40,28 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 核心數據庫：兩頁面共享，但前台不執行複雜迴圈，徹底防止鎖死
+# 核心數據庫結構：儲存所有成功生成的歷史訂單
 if "backend_orders_db" not in st.session_state:
     st.session_state.backend_orders_db = []
 
+# 老闆專用營業控制（預設營業）
+IS_OPEN = True 
+
+if not IS_OPEN:
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    with st.container():
+        st.markdown("<h1 style='text-align: center; color: #FBBF24 !important;'>🌙 店鋪休息中 / Closed</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; font-size: 18px; color: #FFFFFF !important;'>謝謝您的光臨！我們目前的營業時間已結束，明天請早喔！🙏</p>", unsafe_allow_html=True)
+    st.stop() 
+
+# ==========================================
+# 🍔 網頁最上方大標題
+# ==========================================
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
+st.write("---")
 
-# 用餐方式
+# 用餐方式選擇
 dining_type = st.radio(
     "🥡 請選擇您的用餐方式：", 
     ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
@@ -73,10 +88,13 @@ if "order_id" not in st.session_state:
     date_str = datetime.now().strftime("%Y%m%d")
     st.session_state.order_id = f"MY-{date_str}-{random.randint(1000, 9999)}"
 
-# 建立兩欄網頁排版
-col1, col2 = st.columns(2)
+# ==========================================
+# 建立三欄網頁排版 (菜單、購物車、老闆後台完全平行，絕不鎖死)
+# ==========================================
+col_menu, col_cart, col_admin = st.columns([4, 4, 3])
 
-with col1:
+# ─── 第一欄：今日菜單 ───
+with col_menu:
     st.subheader("【 🍱 今日菜單 】")
     
     if dining_type is None:
@@ -106,7 +124,8 @@ with col1:
                 st.toast(f"已加入購物車！")
                 st.rerun()
 
-with col2:
+# ─── 第二欄：顧客購物車 ───
+with col_cart:
     st.subheader("【 🛒 您的購物車 】")
     
     display_type = dining_type if dining_type else "⚠️ 尚未選擇"
@@ -122,6 +141,7 @@ with col2:
     
     if not st.session_state.new_cart:
         st.write("購物車目前是空的喔！")
+        total = 0
     else:
         total = 0
         st.write("---")
@@ -135,9 +155,9 @@ with col2:
             item_total = item_price * qty
             total += item_total
             
-            cart_col1, cart_col2, cart_col3 = st.columns([2, 1, 1])
+            cart_col1, cart_col2, cart_col3 = st.columns([5, 2, 2])
             with cart_col1:
-                st.write(f"▪️ **{food_info}** x {qty}")
+                st.write(f"▪️ **{food_info}**x{qty}")
             with cart_col2:
                 if st.button("➖", key=f"minus_{food_info}"):
                     st.session_state.new_cart[food_info] -= 1
@@ -150,14 +170,13 @@ with col2:
                     st.rerun()
                     
         st.write("---")
-        
         order_note = st.text_input("📝 訂單備註（例如：飯少、薯條不加鹽）")
         coupon = st.text_input("🏷️ 輸入折扣碼 (提示: VIP90 )")
         
         if coupon == "VIP90":
             discount = total * 0.1
             final_total = total - discount
-            st.info(f"🎉 成功套用 9 折折扣碼！已折抵 {CURRENCY} {discount:.2f}")
+            st.info(f"🎉 成功套用 9 折折扣碼！")
         else:
             if coupon != "":
                 st.error("❌ 折扣碼無效！")
@@ -168,23 +187,21 @@ with col2:
         
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
-            ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"]
+            ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
+            key="customer_pay_method"
         )
         
         payment_closing_text = ""
         if pay_method == "DuitNow 線上轉賬":
             st.markdown("""
-                <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
-                    <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
-                    <p style="margin: 0px; font-size: 15px;">請掃描下方 QR Code 或手動轉賬總金額至老闆賬號：</p>
-                    <p style="margin: 5px 0px; font-size: 18px; font-weight: bold; color: #FBBF24;">📞 號碼：010-9456359</p>
+                <div style="background-color: #1F2937; padding: 12px; border-radius: 8px; margin-bottom: 10px; color: #FFFFFF; font-size:14px;">
+                    <p style="margin: 0px; font-weight: bold; color: #FBBF24;">📞 DuitNow 轉賬號碼：010-9456359</p>
                 </div>
             """, unsafe_allow_html=True)
             if os.path.exists("qr.jpg"):
-                st.image("qr.jpg", width=220, caption="請截圖或銀行 App 掃描轉賬")
+                st.image("qr.jpg", width=150, caption="請掃描此 QR 轉賬")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
         else:
-            st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
         
         safe_dining = "Takeaway (外帶)"
@@ -210,7 +227,7 @@ with col2:
         encoded_text = urllib.parse.quote(whatsapp_text)
         whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
         
-        # 🌟 幕後自動寫入後台數據庫，絕不干擾前端元件
+        # 默默在背景同步至老闆後台
         if not any(o['order_id'] == st.session_state.order_id for o in st.session_state.backend_orders_db):
             st.session_state.backend_orders_db.append({
                 "order_id": st.session_state.order_id,
@@ -222,14 +239,34 @@ with col2:
                 "note": order_note
             })
 
-        st.write("---")
-        # 🚀 100% 絕對正常、永不消失的黃色大按鈕！
+        # 🚀 顧客發送按鈕：永遠出現在購物車正下方，絕不消失
         st.link_button("🚀 確認並發送訂單至 WhatsApp", whatsapp_url, use_container_width=True)
 
-        # 🧹 清空購物車按鈕
+        # 🧹 一鍵清空購物車按鈕
         st.write("") 
         if st.button("🧹 清空購物車並開始新訂單", use_container_width=True):
             st.session_state.new_cart = {}  
             next_date_str = datetime.now().strftime("%Y%m%d")
             st.session_state.order_id = f"MY-{next_date_str}-{random.randint(1000, 9999)}"
             st.rerun()
+
+# ─── 第三欄：👨‍🍳 老闆專屬控制台 (完全獨立在最右側，互不干涉) ───
+with col_admin:
+    st.subheader("【 🛠️ 店家後台 】")
+    admin_password = st.text_input("🔑 輸入管理員密碼：", type="password", key="admin_pwd_final")
+    
+    if admin_password == "1234":
+        st.success("🔓 密碼正確")
+        
+        if not st.session_state.backend_orders_db:
+            st.info("📭 目前尚無訂單紀錄。")
+        else:
+            st.write(f"📈 今日生成: **{len(st.session_state.backend_orders_db)}** 單")
+            
+            # 自動整理成表格供下載
+            export_data = []
+            for order in st.session_state.backend_orders_db:
+                items_text = ", ".join([f"{k}x{v}" for k, v in order['items'].items()])
+                export_data.append({
+                    "訂單單號": order['order_id'],
+                    "下單時間": order['time'],
