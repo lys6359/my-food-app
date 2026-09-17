@@ -51,7 +51,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 初始化全域模擬數據庫：儲儲所有成功送出的訂單（供老闆後台查閱）
+# 初始化全域模擬數據庫：儲存所有成功送出的訂單（供老闆後台查閱）
 if "all_orders" not in st.session_state:
     st.session_state.all_orders = []
 
@@ -230,20 +230,14 @@ with col2:
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
-            index=None
+            index=0  # 🌟 核心修正：預設選取第一個，防止 None 導致程式誤判
         )
         
         payment_closing_text = ""
-        is_button_disabled = True 
         
-        if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
-            st.error("⚠️ 您選擇了外送，請在上方購物車內填寫「完整外送地址」，才可以發送訂單喔！")
-        elif dining_type == "內用 🍽️" and not table_number:
-            st.error("⚠️ 您選擇了內用，請在上方購物車內填寫「桌號」，才可以發送訂單喔！")
-        elif pay_method is None:
-            st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
-        elif pay_method == "DuitNow 線上轉賬":
-            st.markdown(f"""
+        # 根據付款方式渲染 UI，但不去干涉按鈕的生死
+        if pay_method == "DuitNow 線上轉賬":
+            st.markdown("""
                 <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
                     <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
                     <p style="margin: 0px; font-size: 15px;">請掃描下方 QR Code 或手動轉賬總金額至老闆賬號：</p>
@@ -258,12 +252,11 @@ with col2:
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
             payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
-            is_button_disabled = False 
         else:
             st.info("💡 提示：請在下單後，於現場取餐/用餐時向櫃檯支付現金。")
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
-            is_button_disabled = False 
         
+        # 格式化文字
         safe_dining = "Takeaway (外帶)"
         if dining_type and "外送" in dining_type:
             safe_dining = f"Delivery (外送地址: {delivery_address})"
@@ -273,3 +266,11 @@ with col2:
         safe_method = "DuitNow QR" if pay_method and "DuitNow" in pay_method else "Cash"
         
         # 建立 WhatsApp 訊息文字
+        whatsapp_text = f"*** NEW ORDER ({st.session_state.order_id}) ***\n\n"
+        whatsapp_text += f"📍 用餐方式: {safe_dining}\n"
+        whatsapp_text += f"💳 付款選擇: {safe_method}\n\n"
+        whatsapp_text += f"--- 🛒 點餐明細 ---\n"
+        
+        for food_info, qty in st.session_state.new_cart.items():
+            whatsapp_text += f"▪️ {food_info} x {qty}\n"
+            
