@@ -76,7 +76,7 @@ if app_mode == "📊 老闆後台面板":
         st.write("您可以在這裡即時查看顧客點單明細、核對金流與統計今日營業額。")
         
         if not st.session_state.order_history:
-            st.info("📭 目前還沒有收到任何顧客的訂單喔！當顧客在前台點擊送出後，訂單會自動存到這裡。")
+            st.info("📭 目前還沒有收到 any 顧客的訂單喔！當顧客在前台點擊送出後，訂單會自動存到這裡。")
         else:
             total_orders = len(st.session_state.order_history)
             sales_sum = sum(order["total_amount"] for order in st.session_state.order_history)
@@ -214,7 +214,7 @@ else:
                         st.session_state.new_cart[food_info] += 1
                         st.rerun()
         
-        # 🌟 【重點改造】：將結帳功能與 WhatsApp 按鈕完全移出購物車限制，確保永遠渲染！
+        # 🌟【完全移出購物車條件外】下方所有結帳資訊與發送按鈕改為「常駐顯示」
         st.write("---")
         order_note = st.text_input("📝 訂單備註（例如：飯少、薯條不加鹽）")
         coupon = st.text_input("🏷️ 輸入折扣碼 (提示: VIP90 )")
@@ -231,19 +231,16 @@ else:
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
         st.write("---")
         
-        PAY_QR = "DuitNow 線上轉賬"
-        PAY_CASH = "到店支付現金 / 拿食物時付款"
-        
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
-            [PAY_QR, PAY_CASH],
+            ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
             index=None
         )
         
         payment_closing_text = ""
         
-        # 動態顯示對應金流說明區塊
-        if pay_method == PAY_QR:
+        # 線性渲染付款資訊，確保排版絕不斷裂
+        if pay_method == "DuitNow 線上轉賬":
             st.markdown(f"""
                 <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
                     <h4 style="color: #FBBF24; margin-top: 0px; margin-bottom: 8px;">💳 DuitNow 轉賬收款說明</h4>
@@ -256,3 +253,4 @@ else:
                 st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             
             st.info("💡 提示：轉賬完成後，請點擊下方按鈕發送訂單，並在 WhatsApp 附上「付款收據截圖」給老闆喔！🙏")
+            payment_closing_text = f"老闆，我已經完成 DuitNow 轉賬 {CURRENCY} {final_total:.2f}，附圖是我的付款收據，請查收並核對單號 {st.session_state.order_id}，謝謝！"
