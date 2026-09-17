@@ -2,21 +2,34 @@ import streamlit as st
 import urllib.parse
 import random
 import os
+from datetime import datetime
 
 # 1. 網頁基本設定
-st.set_page_config(page_title="MY AI 網頁點餐系統", page_icon="🍔", layout="wide")
+st.set_page_config(page_title="MY AI 網頁點餐系統 + 後台管理", page_icon="🍔", layout="wide")
 
-# 利用 CSS 注入，將背景改成高級明亮黃與深灰色調
+# 利用 CSS 注入，將背景改成高級明亮黃與深灰色調，並優化側邊欄與表格樣式
 st.markdown("""
     <style>
     .stApp {
         background-color: #FBBF24; 
         color: #1F2937 !important;
     }
-    h1, h2 {
+    h1, h2, h3 {
         color: #000000 !important;
         font-weight: 800 !important;
     }
+    /* 側邊欄老闆後台樣式優化 */
+    [data-testid="stSidebar"] {
+        background-color: #111827 !important;
+        color: #FFFFFF !important;
+    }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+        color: #FBBF24 !important;
+    }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
+        color: #FFFFFF !important;
+    }
+    /* 顧客貨架與購物車 Container */
     [data-testid="stContainer"] {
         background-color: #1F2937 !important; 
         border-radius: 16px !important;
@@ -38,9 +51,48 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 老闆專用控制台：True = 正常營業 | False = 店鋪打烊
-IS_OPEN = True 
+# 初始化全域模擬數據庫：儲存所有成功送出的訂單（供老闆後台查閱）
+if "all_orders" not in st.session_state:
+    st.session_state.all_orders = []
 
+# ==========================================
+# 🛠️ 老闆專用控制台 (側邊欄隱藏管理後台)
+# ==========================================
+with st.sidebar:
+    st.title("👨‍🍳 老闆專屬後台面板")
+    st.write("此面板僅供店家管理使用")
+    
+    # 控制店鋪營業狀態
+    IS_OPEN = st.toggle("店鋪營業狀態 (Open/Closed)", value=True)
+    
+    st.write("---")
+    st.subheader("📊 訂單實時監控中心")
+    
+    if not st.session_state.all_orders:
+        st.info("📭 目前暫無新訂單。顧客點擊發送後此處將自動更新。")
+    else:
+        st.success(f"📈 今日已接收訂單量: {len(st.session_state.all_orders)} 單")
+        
+        # 遍歷所有生成的訂單單號並列表顯示
+        for order in st.session_state.all_orders:
+            with st.expander(f"📋 單號：{order['order_id']} ({order['time']})"):
+                st.markdown(f"**用餐方式:** {order['dining_type']}")
+                st.markdown(f"**付款方式:** {order['pay_method']}")
+                st.markdown(f"**總金額:** {order['total']}")
+                st.markdown("**餐點明細:**")
+                for item, qty in order['items'].items():
+                    st.write(f"- {item} x {qty}")
+                if order['note']:
+                    st.markdown(f"**備註:** {order['note']}")
+                
+                # 訂單狀態管理
+                st.selectbox(
+                    "更新訂單狀態", 
+                    ["新訂單 🆕", "製作中 🍳", "配送/待取中 🛵", "已完成 ✅"], 
+                    key=f"status_{order['order_id']}"
+                )
+
+# 營業中斷防禦邏輯
 if not IS_OPEN:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     with st.container():
@@ -48,10 +100,13 @@ if not IS_OPEN:
         st.markdown("<p style='text-align: center; font-size: 18px; color: #FFFFFF !important;'>謝謝您的光臨！我們目前的營業時間已結束，明天請早喔！🙏</p>", unsafe_allow_html=True)
     st.stop() 
 
+# ==========================================
+# 🍔 前台顧客點餐系統
+# ==========================================
 st.title("🍔 我的馬來西亞在地點餐系統")
 st.write("歡迎光臨！請在下方選擇您的餐點。結帳後將引導至 WhatsApp 發送訂單給老闆喔！")
 
-# 用餐方式新增「食物配送 🚗」，並且預設為 None (強制顧客先選擇)
+# 用餐方式
 dining_type = st.radio(
     "🥡 請選擇您的用餐方式：", 
     ["內用 🍽️", "外帶 🛍️", "外送 / 食物配送 🚗"], 
@@ -67,15 +122,16 @@ menu = {
     "黃金薯條 🍟": 7.00
 }
 
-# 馬來西亞專屬貨幣符號
 CURRENCY = "RM"
 MY_PHONE_NUMBER = "60109456359"
 
 if "new_cart" not in st.session_state:
     st.session_state.new_cart = {}
 
+# 🌟 自動生成唯一的訂單單號 (結合當前日期與隨機數，格式如：MY-20260917-1024)
 if "order_id" not in st.session_state:
-    st.session_state.order_id = f"MY-{random.randint(1000, 9999)}"
+    date_str = datetime.now().strftime("%Y%m%d")
+    st.session_state.order_id = f"MY-{date_str}-{random.randint(1000, 9999)}"
 
 # 3. 建立兩欄網頁排版
 col1, col2 = st.columns(2)
@@ -114,9 +170,8 @@ with col2:
     st.subheader("【 🛒 您的購物車 】")
     
     display_type = dining_type if dining_type else "⚠️ 尚未選擇"
-    st.markdown(f"✨ 目前選擇：**{display_type}** | 🔢 訂單單號：**{st.session_state.order_id}**") 
+    st.markdown(f"✨ 目前選擇：**{display_type}** | 🔢 自動生成單號：**{st.session_state.order_id}**") 
     
-    # 根據不同的用餐方式，動態彈出地址或桌號輸入框
     delivery_address = ""
     table_number = ""
     
@@ -172,7 +227,6 @@ with col2:
         st.markdown(f"### 💰 總金額：**{CURRENCY} {final_total:.2f}**")
         st.write("---")
         
-        # 付款方式選擇
         pay_method = st.radio(
             "💳 請選擇您的付款方式：", 
             ["DuitNow 線上轉賬", "到店支付現金 / 拿食物時付款"],
@@ -182,16 +236,12 @@ with col2:
         payment_closing_text = ""
         is_button_disabled = True 
         
-        # 外送和地址的完整防呆邏輯
         if dining_type == "外送 / 食物配送 🚗" and not delivery_address:
             st.error("⚠️ 您選擇了外送，請在上方購物車內填寫「完整外送地址」，才可以發送訂單喔！")
-            is_button_disabled = True
         elif dining_type == "內用 🍽️" and not table_number:
             st.error("⚠️ 您選擇了內用，請在上方購物車內填寫「桌號」，才可以發送訂單喔！")
-            is_button_disabled = True
         elif pay_method is None:
             st.error("⚠️ 請在上方選擇您的付款方式，才可以點擊按鈕發送訂單喔！")
-            is_button_disabled = True
         elif pay_method == "DuitNow 線上轉賬":
             st.markdown(f"""
                 <div style="background-color: #1F2937; padding: 15px; border-radius: 12px; margin-bottom: 10px; color: #FFFFFF;">
@@ -201,7 +251,6 @@ with col2:
                 </div>
             """, unsafe_allow_html=True)
             
-            # 請確保您的目錄下有 qr.jpg 圖片檔案
             if os.path.exists("qr.jpg"):
                 st.image("qr.jpg", width=220, caption="請截圖或直接用銀行 App 掃描此 DuitNow QR 轉賬")
             else:
@@ -215,43 +264,12 @@ with col2:
             payment_closing_text = f"老闆，我選擇【到店支付現金】，請先幫我準備單號 {st.session_state.order_id} 的餐點，我抵達時再付款，謝謝！"
             is_button_disabled = False 
         
-        # 轉換成乾淨、全文字、絕不碎單的格式
         safe_dining = "Takeaway (外帶)"
         if dining_type and "外送" in dining_type:
             safe_dining = f"Delivery (外送地址: {delivery_address})"
         elif dining_type and "內用" in dining_type:
             safe_dining = f"Dine-in (桌號: {table_number})"
             
-        if pay_method is not None:
-            safe_method = "DuitNow QR" if "DuitNow" in pay_method else "Cash"
-        else:
-            safe_method = "Not Selected"
+        safe_method = "DuitNow QR" if pay_method and "DuitNow" in pay_method else "Cash"
         
-        # ─── 補全的部分：構建 WhatsApp 訊息與跳轉按鈕 ───
-        whatsapp_text = f"*** NEW ORDER ({st.session_state.order_id}) ***\n\n"
-        whatsapp_text += f"📍 用餐方式: {safe_dining}\n"
-        whatsapp_text += f"💳 付款選擇: {safe_method}\n\n"
-        whatsapp_text += f"--- 🛒 點餐明細 ---\n"
-        
-        for food_info, qty in st.session_state.new_cart.items():
-            whatsapp_text += f"▪️ {food_info} x {qty}\n"
-            
-        whatsapp_text += f"\n💰 應付總額: {CURRENCY} {final_total:.2f}\n"
-        
-        if order_note:
-            whatsapp_text += f"📝 備註: {order_note}\n"
-            
-        whatsapp_text += f"\n💬 {payment_closing_text}"
-        
-        # 進行網頁標準 URL 編碼
-        encoded_text = urllib.parse.quote(whatsapp_text)
-        whatsapp_url = f"https://wa.me/{MY_PHONE_NUMBER}?text={encoded_text}"
-        
-        st.write("---")
-        # 渲染發送按鈕
-        st.link_button(
-            "🚀 確認並發送訂單至 WhatsApp", 
-            whatsapp_url, 
-            disabled=is_button_disabled, 
-            use_container_width=True
-        )
+        # 建立明細文字
